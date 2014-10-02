@@ -20,7 +20,8 @@ public class BaselineWordAligner implements WordAligner {
   // TODO: Use arrays or Counters for collecting sufficient statistics
   // from the training data.
   private CounterMap<String,String> sourceTargetCounts;
-
+  
+  
   public Alignment align(SentencePair sentencePair) {
     // Placeholder code below. 
     // TODO Implement an inference algorithm for Eq.1 in the assignment
@@ -40,7 +41,6 @@ public class BaselineWordAligner implements WordAligner {
   }
 
   public void train(List<SentencePair> trainingPairs) {
-	System.out.println("test2");
     sourceTargetCounts = new CounterMap<String,String>();
     for(SentencePair pair : trainingPairs){
       List<String> targetWords = pair.getTargetWords();
@@ -48,7 +48,7 @@ public class BaselineWordAligner implements WordAligner {
       for(String source : sourceWords){
         for(String target : targetWords){
           // TODO: Warm-up. Your code here for collecting sufficient statistics.
-          sourceTargetCounts.setCount(source, target, 1.0);
+          sourceTargetCounts.incrementCount(source, target, 1.0);
         }
       }
     }
