@@ -52,6 +52,7 @@ public class IBMModel1 implements WordAligner {
 			//System.out.println("\n\n\nNew Matrix:");
 			//http://www.cl.cam.ac.uk/teaching/1011/L102/clark-lecture3.pdf
 			//E-Step
+			/*
 			CounterMap<String, String> countMap = new CounterMap<String, String>();
 			Counter<String> normalizationMap = new Counter<String>();
 			for(SentencePair sentencePair : trainingData){
@@ -76,9 +77,9 @@ public class IBMModel1 implements WordAligner {
 					double probability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
 					setProbability(srcWord, targetWord, probability);
 				}
-			}
+			}*/
 			
-			/*
+			
 			//Psuedocode from http://www.inf.ed.ac.uk/teaching/courses/mt/lectures/ibm-model1.pdf
 			CounterMap<String, String> countMap = new CounterMap<String, String>();
 			Counter<String> normalizationMap = new Counter<String>();
@@ -86,9 +87,7 @@ public class IBMModel1 implements WordAligner {
 				Counter<String> scoreMap = new Counter<String>();
 				List<String> srcList = sentencePair.getSourceWords();
 				List<String> targetList = sentencePair.getTargetWords();
-				//for (int targetIndex = 0; targetIndex < targetList.size(); targetIndex++) {
 				for(String targetWord : targetList){	
-					//for (int srcIndex = 0; srcIndex < srcList.size(); srcIndex++) {
 					for(String srcWord : srcList){	
 						scoreMap.incrementCount(targetWord, getProbability(srcWord, targetWord));
 					}
@@ -106,10 +105,10 @@ public class IBMModel1 implements WordAligner {
 			for(String srcWord : srcMap.keySet()){
 				for(String targetWord : targetMap.keySet()){
 					double probability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
+					System.out.println(srcWord + ", " + targetWord + ":" + probability);
 					setProbability(srcWord, targetWord, probability);
-
 				}
-			}*/
+			}
 		}
 		
 	}
@@ -153,8 +152,8 @@ public class IBMModel1 implements WordAligner {
 			targetMap.put(targetWord, index);
 			index++;
 		}
-		//System.out.println(srcMap);
-		//System.out.println(targetMap);
+		System.out.println(srcMap);
+		System.out.println(targetMap);
 		//printModel1Matrix();
 	}
 	
