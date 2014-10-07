@@ -4,6 +4,7 @@ import java.util.List;
 
 public class IBMModel2 implements WordAligner {
 
+	
 	@Override
 	public Alignment align(SentencePair sentencePair) {
 		// TODO Auto-generated method stub
@@ -12,8 +13,11 @@ public class IBMModel2 implements WordAligner {
 
 	@Override
 	public void train(List<SentencePair> trainingData) {
+		//sString[][]
 		// TODO Auto-generated method stub
 
 	}
+	
+
 
 }

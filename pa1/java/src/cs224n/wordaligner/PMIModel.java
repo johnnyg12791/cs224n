@@ -72,7 +72,6 @@ public class PMIModel implements WordAligner {
 	        }
 	      }
 	    }
-	    
 	    //Now I want to divide by the counts of source and target
 	    double sourceTotal = sourceCounts.totalCount();
 	    //System.out.println(sourceTotal);

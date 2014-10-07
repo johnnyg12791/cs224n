@@ -2,6 +2,9 @@ package cs224n.wordaligner;
 
 import java.util.*;
 
+import cs224n.util.Counter;
+import cs224n.util.CounterMap;
+
 public class IBMModel1 implements WordAligner {
 	
 	private double[][] model1Matrix;
@@ -25,6 +28,33 @@ public class IBMModel1 implements WordAligner {
 
 	@Override
 	public void train(List<SentencePair> trainingData) {
+		buildModel1Matrix(trainingData);
+		
+		
+		int limit = 20;
+		for (int i = 0; i < limit; i++) {
+			for (SentencePair sentencePair : trainingData) {
+				CounterMap<String, String> countMap = new CounterMap<String, String>();
+				Counter<String> foreignMap = new Counter<String>();
+				List<String> srcList = sentencePair.getSourceWords();
+				List<String> targetList = sentencePair.getTargetWords();
+				//for (int targetIndex = 0; targetIndex < targetList.size(); targetIndex++) {
+				for(String targetWord : targetList){	
+					double score = 0;
+					//for (int srcIndex = 0; srcIndex < srcList.size(); srcIndex++) {
+					for(String srcWord : srcList){	
+						score += getProbability(srcWord, targetWord);
+						
+						
+					}
+				}
+			}
+		}
+	}
+	
+	
+	
+	public void buildModel1Matrix(List<SentencePair> trainingData){
 		Set<String> srcWords = new HashSet<String>();
 		Set<String> targetWords = new HashSet<String>();
 		srcMap = new HashMap<String, Integer>();
@@ -49,18 +79,16 @@ public class IBMModel1 implements WordAligner {
 		for (int i = 0; i < model1Matrix.length; i++) {
 			Arrays.fill(model1Matrix[i], p);
 		}
-		
-		int limit = 20;
-		for (int i = 0; i < limit; i++) {
-			for (SentencePair sentencePair : trainingData) {
-				List<String> srcList = sentencePair.getSourceWords();
-				List<String> targetList = sentencePair.getTargetWords();
-				for (String srcWord : srcList) {
-					for (String targetWord : targetList) {
-						
-					}
-				}
-			}
+		//I am also going to build the src and target maps
+		int index = 0;
+		for (String srcWord : srcWords){
+			srcMap.put(srcWord, index);
+			index++;
+		}
+		index = 0;
+		for (String targetWord : targetWords){
+			targetMap.put(targetWord, index);
+			index++;
 		}
 	}
 	
