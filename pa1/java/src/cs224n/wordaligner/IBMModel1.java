@@ -47,45 +47,13 @@ public class IBMModel1 implements WordAligner {
 		
 		int limit = 20;
 		for (int i = 0; i < limit; i++) {
-			
-			//printModel1Matrix();
-			//System.out.println("\n\n\nNew Matrix:");
-			//http://www.cl.cam.ac.uk/teaching/1011/L102/clark-lecture3.pdf
-			//E-Step
-			/*
-			CounterMap<String, String> countMap = new CounterMap<String, String>();
-			Counter<String> normalizationMap = new Counter<String>();
-			for(SentencePair sentencePair : trainingData){
-				List<String> srcList = sentencePair.getSourceWords();
-				List<String> targetList = sentencePair.getTargetWords();
-				for(String srcWord : srcList){
-					Counter<String> scoreMap = new Counter<String>();
-					for(String targetWord : targetList){
-						scoreMap.incrementCount(targetWord, getProbability(srcWord, targetWord));
-					}
-					for(String targetWord : targetList){
-						double increment = getProbability(srcWord, targetWord)/scoreMap.getCount(targetWord);
-						countMap.incrementCount(srcWord, targetWord, increment);
-						normalizationMap.incrementCount(targetWord, increment);
-					}
-				}
-			}
-			
-			//M-step
-			for(String targetWord : targetMap.keySet()){
-				for(String srcWord : srcMap.keySet()){
-					double probability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
-					setProbability(srcWord, targetWord, probability);
-				}
-			}*/
-			
-			
 			//Psuedocode from http://www.inf.ed.ac.uk/teaching/courses/mt/lectures/ibm-model1.pdf
 			CounterMap<String, String> countMap = new CounterMap<String, String>();
 			Counter<String> normalizationMap = new Counter<String>();
 			for (SentencePair sentencePair : trainingData) {
 				Counter<String> scoreMap = new Counter<String>();
 				List<String> srcList = sentencePair.getSourceWords();
+				srcList.add(NULL_WORD);
 				List<String> targetList = sentencePair.getTargetWords();
 				for(String targetWord : targetList){	
 					for(String srcWord : srcList){	
