@@ -18,10 +18,23 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 	@Override
 	public Alignment align(SentencePair sentencePair) {
 		Alignment alignment = new Alignment();
-		int numSrcWords = sentencePair.getSourceWords().size();
-		int numTargetWords = sentencePair.getTargetWords().size();
+		List<String> srcWords = sentencePair.getSourceWords();
+		List<String> targetWords = sentencePair.getTargetWords();
+		int numSrcWords = srcWords.size();
+		int numTargetWords = targetWords.size();
 		for (int targetIndex = 0; targetIndex < numTargetWords; targetIndex++) {
-			
+			String targetWord = targetWords.get(targetIndex);
+			double bestProbability = 0;
+			int bestIndex = 0;
+			for (int srcIndex = 0; srcIndex < numSrcWords; srcIndex++) {
+				String srcWord = srcWords.get(srcIndex);
+				double probability = alignmentMatrix.getCount(srcWord, targetWord);
+				if (probability > bestProbability) {
+					bestProbability = probability;
+					bestIndex = srcIndex;
+				}
+			}
+			alignment.addPredictedAlignment(targetIndex, bestIndex);
 		}
 		return alignment;
 	}
