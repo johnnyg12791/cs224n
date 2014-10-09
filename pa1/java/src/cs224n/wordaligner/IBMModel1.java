@@ -6,7 +6,7 @@ import cs224n.util.Counter;
 import cs224n.util.CounterMap;
 
 public class IBMModel1 implements WordAligner {
-	
+
 	private double[][] model1Matrix;
 	private HashMap<String, Integer> srcMap;
 	private HashMap<String, Integer> targetMap;
@@ -22,8 +22,8 @@ public class IBMModel1 implements WordAligner {
 			double bestProbability = 0;
 			int bestIndex = 0;
 			for (int srcIndex = 0; srcIndex < numSourceWords; srcIndex++) {
-			//I want to find the highest scoring target word for each source word
-			String srcWord = sentencePair.getSourceWords().get(srcIndex);
+				//I want to find the highest scoring target word for each source word
+				String srcWord = sentencePair.getSourceWords().get(srcIndex);
 				double curProbability = getProbability(srcWord, targetWord);
 				if(curProbability > bestProbability){
 					bestProbability = curProbability;
@@ -36,17 +36,17 @@ public class IBMModel1 implements WordAligner {
 				alignment.addPredictedAlignment(targetIndex, bestIndex);
 			//Else I don't add anything because the NULL is the best match for our target
 		}
-		
+
 		return alignment;
 	}
-	
+
 
 	@Override
 	public void train(List<SentencePair> trainingData) {
 		buildModel1Matrix(trainingData);
-		
+
 		//int limit = 20;
-		
+
 		int count = 0;
 		boolean convergence = false;
 		while (!convergence) {
@@ -94,16 +94,16 @@ public class IBMModel1 implements WordAligner {
 			count++;
 		}	
 	}
-	
-	
-	
+
+
+
 	public void buildModel1Matrix(List<SentencePair> trainingData){
 		Set<String> srcWords = new HashSet<String>();
 		Set<String> targetWords = new HashSet<String>();
 		srcMap = new HashMap<String, Integer>();
 		targetMap = new HashMap<String, Integer>();
 		srcWords.add(NULL_WORD);//Add the null word
-		
+
 		for (SentencePair sentencePair : trainingData) {
 			List<String> srcList = sentencePair.getSourceWords();
 			List<String> targetList = sentencePair.getTargetWords();
@@ -138,7 +138,7 @@ public class IBMModel1 implements WordAligner {
 		//System.out.println(targetMap);
 		//printModel1Matrix();
 	}
-	
+
 	private void printModel1Matrix() {
 		for (int i = 0; i < model1Matrix.length; i++) {
 			for (int j = 0; j < model1Matrix[i].length; j++) {
@@ -147,7 +147,7 @@ public class IBMModel1 implements WordAligner {
 			System.out.println("\n");
 		}
 	}
-	
+
 	//Helper functions for our matrix (so we can get/set with words not indicies)
 	private double getProbability(String srcWord, String targetWord) {
 		int srcIndex = srcMap.get(srcWord);
