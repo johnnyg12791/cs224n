@@ -17,8 +17,13 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 	
 	@Override
 	public Alignment align(SentencePair sentencePair) {
-		// TODO Auto-generated method stub
-		return null;
+		Alignment alignment = new Alignment();
+		int numSrcWords = sentencePair.getSourceWords().size();
+		int numTargetWords = sentencePair.getTargetWords().size();
+		for (int targetIndex = 0; targetIndex < numTargetWords; targetIndex++) {
+			
+		}
+		return alignment;
 	}
 
 	@Override
@@ -35,8 +40,6 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 			CounterMap<Integer, String> distortionCountMap = new CounterMap<Integer, String>();
 			Counter<String> distortionNormalizationMap = new Counter<String>();
 			for (SentencePair sentencePair : trainingData) {					// for k = 1...n
-				Counter<String> alignmentScoreMap = new Counter<String>();
-				Counter<String> distortionScoreMap = new Counter<String>();
 				List<String> srcList = sentencePair.getSourceWords();
 				List<String> targetList = sentencePair.getTargetWords();
 				Counter<String> scoreMap = new Counter<String>();
@@ -46,14 +49,17 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 					for (int j = 0; j < m; j++) {
 						String srcWord = srcList.get(i);
 						String targetWord = targetList.get(j);
+						scoreMap.incrementCount(targetWord, distortionMatrix.getCount(j, triple(i, l, m)) *
+								alignmentMatrix.getCount(srcWord, targetWord));
 					}
 				}
 				
 				for (int i = 0; i < l; i++) {
-					for (int j = 0; j < m; j++) {	
-						double d = getIncrement();
+					for (int j = 0; j < m; j++) {
 						String srcWord = srcList.get(i);
 						String targetWord = targetList.get(j);
+						double d = distortionMatrix.getCount(j, triple(i, l, m)) * alignmentMatrix.getCount(srcWord, targetWord) /
+								scoreMap.getCount(targetWord);
 						alignmentCountMap.incrementCount(srcWord, targetWord, d);
 						alignmentNormalizationMap.incrementCount(targetWord, d);
 						distortionCountMap.incrementCount(j, triple(i, l, m), d);
@@ -63,7 +69,19 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 			}
 			
 			// M-step: update t(f|e) and q(j|i,l,m)
+			for (String srcWord : alignmentMatrix.keySet()) {
+				for (String targetWord : alignmentMatrix.getCounter(srcWord).keySet()) {
+					double currentProbability = alignmentMatrix.getCount(srcWord, targetWord);
+					alignmentMatrix.setCount(srcWord, targetWord, currentProbability / alignmentNormalizationMap.getCount(srcWord));
+				}
+			}
 			
+			for (Integer j : distortionMatrix.keySet()) {
+				for (String triple : distortionMatrix.getCounter(j).keySet()) {
+					double currentProbability = distortionMatrix.getCount(j, triple);
+					distortionMatrix.setCount(j, triple, currentProbability / distortionNormalizationMap.getCount(triple));
+				}
+			}
 		}
 	}
 	
