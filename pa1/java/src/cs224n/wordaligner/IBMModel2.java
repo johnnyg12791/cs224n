@@ -14,9 +14,11 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 	private CounterMap<String, String> alignmentMatrix;
 	private CounterMap<Integer, String> distortionMatrix;
 	private Random random = new Random();
-	
+
 	@Override
 	public Alignment align(SentencePair sentencePair) {
+		//System.out.println(alignmentMatrix);
+
 		Alignment alignment = new Alignment();
 		List<String> srcWords = sentencePair.getSourceWords();
 		List<String> targetWords = sentencePair.getTargetWords();
@@ -34,7 +36,10 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 					bestIndex = srcIndex;
 				}
 			}
-			alignment.addPredictedAlignment(targetIndex, bestIndex);
+			//double nullProbability = alignmentMatrix.getCount(NULL_WORD, targetWord);
+			//if (bestProbability > nullProbability) {
+				alignment.addPredictedAlignment(targetIndex, bestIndex);
+			//}
 		}
 		return alignment;
 	}
@@ -42,62 +47,76 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 	@Override
 	public void train(List<SentencePair> trainingData) {
 		this.trainingData = trainingData;
-		
-		buildModel2Matricies();
 		alignmentMatrix = new CounterMap<String, String>();
 		distortionMatrix = new CounterMap<Integer, String>();
-		int limit = 20;
+		buildModel2Matricies();
+		//System.out.println(alignmentMatrix);
+		//System.out.println(distortionMatrix);
+
+		int limit = 10;
 		for (int s = 0; s < limit; s++) {
+			System.out.println("Beginning iteration " + s);
 			CounterMap<String, String> alignmentCountMap = new CounterMap<String, String>();
 			Counter<String> alignmentNormalizationMap = new Counter<String>();
 			CounterMap<Integer, String> distortionCountMap = new CounterMap<Integer, String>();
 			Counter<String> distortionNormalizationMap = new Counter<String>();
 			for (SentencePair sentencePair : trainingData) {					// for k = 1...n
 				List<String> srcList = sentencePair.getSourceWords();
+				//srcList.add(NULL_WORD);
 				List<String> targetList = sentencePair.getTargetWords();
 				Counter<String> scoreMap = new Counter<String>();
 				int l = srcList.size();
 				int m = targetList.size();
-				for (int i = 0; i < l; i++) {
-					for (int j = 0; j < m; j++) {
+				for (int j = 0; j < m; j++) {
+					for (int i = 0; i < l; i++) {
 						String srcWord = srcList.get(i);
 						String targetWord = targetList.get(j);
 						scoreMap.incrementCount(targetWord, distortionMatrix.getCount(j, triple(i, l, m)) *
 								alignmentMatrix.getCount(srcWord, targetWord));
 					}
 				}
-				
-				for (int i = 0; i < l; i++) {
-					for (int j = 0; j < m; j++) {
+
+				//System.out.println(alignmentMatrix);
+				//System.out.println(distortionMatrix);
+
+				for (int j = 0; j < m; j++) {
+					for (int i = 0; i < l; i++) {
 						String srcWord = srcList.get(i);
 						String targetWord = targetList.get(j);
 						double d = distortionMatrix.getCount(j, triple(i, l, m)) * alignmentMatrix.getCount(srcWord, targetWord) /
 								scoreMap.getCount(targetWord);
 						alignmentCountMap.incrementCount(srcWord, targetWord, d);
-						alignmentNormalizationMap.incrementCount(targetWord, d);
+						alignmentNormalizationMap.incrementCount(srcWord, d);
 						distortionCountMap.incrementCount(j, triple(i, l, m), d);
 						distortionNormalizationMap.incrementCount(triple(i, l, m), d);
 					}
 				}
+
+				//System.out.println(alignmentMatrix);
+				//System.out.println(distortionMatrix);
 			}
-			
+
 			// M-step: update t(f|e) and q(j|i,l,m)
 			for (String srcWord : alignmentMatrix.keySet()) {
 				for (String targetWord : alignmentMatrix.getCounter(srcWord).keySet()) {
-					double currentProbability = alignmentMatrix.getCount(srcWord, targetWord);
+					//System.out.println(alignmentMatrix.totalCount());
+					//System.out.println(alignmentNormalizationMap.totalCount());
+					double currentProbability = alignmentCountMap.getCount(srcWord, targetWord);
 					alignmentMatrix.setCount(srcWord, targetWord, currentProbability / alignmentNormalizationMap.getCount(srcWord));
 				}
 			}
-			
+
 			for (Integer j : distortionMatrix.keySet()) {
 				for (String triple : distortionMatrix.getCounter(j).keySet()) {
-					double currentProbability = distortionMatrix.getCount(j, triple);
+					double currentProbability = distortionCountMap.getCount(j, triple);
 					distortionMatrix.setCount(j, triple, currentProbability / distortionNormalizationMap.getCount(triple));
 				}
 			}
+			//System.out.println(alignmentMatrix);
+			//System.out.println(distortionMatrix);
 		}
 	}
-	
+
 	public void buildModel2Matricies() {
 		// calculate initial probabilities for alignment matrix
 		Set<String> srcWords = new HashSet<String>();
@@ -109,23 +128,26 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 				}
 			}
 		}
-		double p = 1.0/srcWords.size();
-		
+		double p = 1.0/(srcWords.size() + 1);
+
 		// build  alignment matrix and distortion matrix
 		for (SentencePair sentencePair : trainingData) {
 			List<String> srcList = sentencePair.getSourceWords();
 			List<String> targetList = sentencePair.getTargetWords();
+			//srcList.add(NULL_WORD);
 			int srcListLength = srcList.size();				// l
 			int targetListLength = targetList.size();		// m
-			for (int i = 0; i < srcListLength; i++) {
-				for (int j = 0; j < targetListLength; j++) {
+			for (int j = 0; j < targetListLength; j++) {
+				for (int i = 0; i < srcListLength; i++) {
 					alignmentMatrix.setCount(srcList.get(i), targetList.get(j), p);
 					distortionMatrix.setCount(j, triple(i, srcListLength, targetListLength), random.nextDouble());
 				}
+				//alignmentMatrix.setCount(NULL_WORD, targetList.get(j), p);
+				
 			}
 		}
 	}
-	
+
 	/*
 	 * Helper function to return a string representation of a triple
 	 * to be used as the second key (V) in the distortion counterMap
@@ -133,7 +155,7 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 	private String triple(int i, int l, int m) {
 		return "" + i + " " + l + " " + m;
 	}
-	
+
 	private double getIncrement() {
 		return 0;
 	}

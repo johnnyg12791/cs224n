@@ -77,6 +77,8 @@ public class IBMModel1 implements WordAligner {
 			Set<String> srcKeySet = srcMap.keySet();
 			Set<String> targetKeySet = targetMap.keySet();
 			convergence = true;
+			System.out.println(normalizationMap.totalCount());
+			printModel1Matrix();
 			for(String srcWord : srcKeySet){
 				for(String targetWord : targetKeySet){
 					double newProbability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
@@ -140,12 +142,15 @@ public class IBMModel1 implements WordAligner {
 	}
 
 	private void printModel1Matrix() {
+		double count = 0.0;
 		for (int i = 0; i < model1Matrix.length; i++) {
 			for (int j = 0; j < model1Matrix[i].length; j++) {
 				System.out.print(model1Matrix[i][j] + " ");
+				count += model1Matrix[i][j];
 			}
 			System.out.println("\n");
 		}
+		System.out.println(count);
 	}
 
 	//Helper functions for our matrix (so we can get/set with words not indicies)
