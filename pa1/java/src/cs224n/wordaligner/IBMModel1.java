@@ -6,14 +6,14 @@ import cs224n.util.Counter;
 import cs224n.util.CounterMap;
 
 public class IBMModel1 implements WordAligner {
-	
-	private double[][] model1Matrix;
-	private HashMap<String, Integer> srcMap;
-	private HashMap<String, Integer> targetMap;
+
+	public double[][] model1Matrix;
+	public HashMap<String, Integer> srcMap;
+	public HashMap<String, Integer> targetMap;
+	private static final double CONVERGENCE_FACTOR = 0.05;
 
 	@Override
-	public Alignment align(SentencePair sentencePair) {
-		//System.out.println(sentencePair);
+	public Alignment align(SentencePair sentencePair) {		
 		Alignment alignment = new Alignment();
 		int numSourceWords = sentencePair.getSourceWords().size();
 		int numTargetWords = sentencePair.getTargetWords().size();
@@ -22,8 +22,8 @@ public class IBMModel1 implements WordAligner {
 			double bestProbability = 0;
 			int bestIndex = 0;
 			for (int srcIndex = 0; srcIndex < numSourceWords; srcIndex++) {
-			//I want to find the highest scoring target word for each source word
-			String srcWord = sentencePair.getSourceWords().get(srcIndex);
+				//I want to find the highest scoring target word for each source word
+				String srcWord = sentencePair.getSourceWords().get(srcIndex);
 				double curProbability = getProbability(srcWord, targetWord);
 				if(curProbability > bestProbability){
 					bestProbability = curProbability;
@@ -36,56 +36,27 @@ public class IBMModel1 implements WordAligner {
 				alignment.addPredictedAlignment(targetIndex, bestIndex);
 			//Else I don't add anything because the NULL is the best match for our target
 		}
-		
+
 		return alignment;
 	}
-	
 
 	@Override
 	public void train(List<SentencePair> trainingData) {
 		buildModel1Matrix(trainingData);
-		
-		int limit = 20;
-		for (int i = 0; i < limit; i++) {
-			
-			//printModel1Matrix();
-			//System.out.println("\n\n\nNew Matrix:");
-			//http://www.cl.cam.ac.uk/teaching/1011/L102/clark-lecture3.pdf
-			//E-Step
-			/*
-			CounterMap<String, String> countMap = new CounterMap<String, String>();
-			Counter<String> normalizationMap = new Counter<String>();
-			for(SentencePair sentencePair : trainingData){
-				List<String> srcList = sentencePair.getSourceWords();
-				List<String> targetList = sentencePair.getTargetWords();
-				for(String srcWord : srcList){
-					Counter<String> scoreMap = new Counter<String>();
-					for(String targetWord : targetList){
-						scoreMap.incrementCount(targetWord, getProbability(srcWord, targetWord));
-					}
-					for(String targetWord : targetList){
-						double increment = getProbability(srcWord, targetWord)/scoreMap.getCount(targetWord);
-						countMap.incrementCount(srcWord, targetWord, increment);
-						normalizationMap.incrementCount(targetWord, increment);
-					}
-				}
-			}
-			
-			//M-step
-			for(String targetWord : targetMap.keySet()){
-				for(String srcWord : srcMap.keySet()){
-					double probability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
-					setProbability(srcWord, targetWord, probability);
-				}
-			}*/
-			
-			
+
+		//int limit = 20;
+
+		int count = 0;
+		boolean convergence = false;
+		while (!convergence) {
+			System.out.println("Beginning Model1 iteration " + count);
 			//Psuedocode from http://www.inf.ed.ac.uk/teaching/courses/mt/lectures/ibm-model1.pdf
 			CounterMap<String, String> countMap = new CounterMap<String, String>();
 			Counter<String> normalizationMap = new Counter<String>();
 			for (SentencePair sentencePair : trainingData) {
 				Counter<String> scoreMap = new Counter<String>();
 				List<String> srcList = sentencePair.getSourceWords();
+				srcList.add(NULL_WORD);
 				List<String> targetList = sentencePair.getTargetWords();
 				for(String targetWord : targetList){	
 					for(String srcWord : srcList){	
@@ -102,25 +73,38 @@ public class IBMModel1 implements WordAligner {
 				}
 			}
 			//Update t(e|f)'s (our matrix) M-Step
-			for(String srcWord : srcMap.keySet()){
-				for(String targetWord : targetMap.keySet()){
-					double probability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
-					System.out.println(srcWord + ", " + targetWord + ":" + probability);
-					setProbability(srcWord, targetWord, probability);
+			Set<String> srcKeySet = srcMap.keySet();
+			Set<String> targetKeySet = targetMap.keySet();
+			convergence = true;
+			//System.out.println(normalizationMap.totalCount());
+			//printModel1Matrix();
+			for(String srcWord : srcKeySet){
+				for(String targetWord : targetKeySet){
+					double newProbability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
+					//System.out.printf("%s, %s: %.2f ", srcWord, targetWord, newProbability);
+					double currentProbability = getProbability(srcWord, targetWord);
+					//System.out.println(currentProbability + " " + newProbability);
+					setProbability(srcWord, targetWord, newProbability);
+					if (Math.abs(newProbability - currentProbability) > CONVERGENCE_FACTOR) {
+						convergence = false;
+					}
 				}
+				//System.out.println();
 			}
-		}
-		
+			//System.out.println();
+			count++;
+		}	
 	}
-	
-	
-	
+
+
+
 	public void buildModel1Matrix(List<SentencePair> trainingData){
 		Set<String> srcWords = new HashSet<String>();
 		Set<String> targetWords = new HashSet<String>();
 		srcMap = new HashMap<String, Integer>();
 		targetMap = new HashMap<String, Integer>();
-		
+		srcWords.add(NULL_WORD);//Add the null word
+
 		for (SentencePair sentencePair : trainingData) {
 			List<String> srcList = sentencePair.getSourceWords();
 			List<String> targetList = sentencePair.getTargetWords();
@@ -129,7 +113,6 @@ public class IBMModel1 implements WordAligner {
 					srcWords.add(srcWord);
 				}
 			}
-			srcWords.add(NULL_WORD);//Add the null word
 			for (String targetWord : targetList) {
 				if (!targetWords.contains(targetWord)) {
 					targetWords.add(targetWord);
@@ -152,27 +135,30 @@ public class IBMModel1 implements WordAligner {
 			targetMap.put(targetWord, index);
 			index++;
 		}
-		System.out.println(srcMap);
-		System.out.println(targetMap);
+		//System.out.println(srcMap);
+		//System.out.println(targetMap);
 		//printModel1Matrix();
 	}
-	
+
 	private void printModel1Matrix() {
+		double count = 0.0;
 		for (int i = 0; i < model1Matrix.length; i++) {
 			for (int j = 0; j < model1Matrix[i].length; j++) {
 				System.out.print(model1Matrix[i][j] + " ");
+				count += model1Matrix[i][j];
 			}
 			System.out.println("\n");
 		}
+		System.out.println(count);
 	}
-	
+
 	//Helper functions for our matrix (so we can get/set with words not indicies)
-	private double getProbability(String srcWord, String targetWord) {
+	public double getProbability(String srcWord, String targetWord) {
 		int srcIndex = srcMap.get(srcWord);
 		int targetIndex = targetMap.get(targetWord);
 		return model1Matrix[srcIndex][targetIndex];
 	}
-	private void setProbability(String srcWord, String targetWord, double probability){
+	public void setProbability(String srcWord, String targetWord, double probability){
 		int srcIndex = srcMap.get(srcWord);
 		int targetIndex = targetMap.get(targetWord);
 		model1Matrix[srcIndex][targetIndex] = probability;
