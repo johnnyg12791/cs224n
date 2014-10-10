@@ -1,6 +1,7 @@
 package cs224n.wordaligner;
 
 import java.util.HashSet;
+<<<<<<< HEAD
 
 import java.util.List;
 import java.util.Random;
@@ -11,6 +12,17 @@ import cs224n.util.CounterMap;
 
 public class IBMModel2 extends IBMModel1 implements WordAligner {
 
+=======
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
+import cs224n.util.Counter;
+import cs224n.util.CounterMap;
+
+public class IBMModel2 extends IBMModel1 implements WordAligner {
+
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 	private List<SentencePair> trainingData;
 	private CounterMap<String, String> alignmentMatrix;
 	private CounterMap<Integer, String> distortionMatrix;
@@ -18,6 +30,11 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 
 	@Override
 	public Alignment align(SentencePair sentencePair) {
+<<<<<<< HEAD
+=======
+		//System.out.println(alignmentMatrix);
+
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 		Alignment alignment = new Alignment();
 		List<String> srcWords = sentencePair.getSourceWords();
 		List<String> targetWords = sentencePair.getTargetWords();
@@ -38,7 +55,11 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 			//double nullProbability = alignmentMatrix.getCount(NULL_WORD, targetWord);
 			//if (bestProbability > nullProbability) {
 				alignment.addPredictedAlignment(targetIndex, bestIndex);
+<<<<<<< HEAD
 			//s}
+=======
+			//}
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 		}
 		return alignment;
 	}
@@ -52,9 +73,15 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 		//System.out.println(alignmentMatrix);
 		//System.out.println(distortionMatrix);
 
+<<<<<<< HEAD
 		int limit = 15;
 		for (int s = 0; s < limit; s++) {
 			System.out.println("Beginning Model2 iteration " + s);
+=======
+		int limit = 10;
+		for (int s = 0; s < limit; s++) {
+			System.out.println("Beginning iteration " + s);
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 			CounterMap<String, String> alignmentCountMap = new CounterMap<String, String>();
 			Counter<String> alignmentNormalizationMap = new Counter<String>();
 			CounterMap<Integer, String> distortionCountMap = new CounterMap<Integer, String>();
@@ -127,6 +154,7 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 				}
 			}
 		}
+<<<<<<< HEAD
 
 		IBMModel1 model1 = new IBMModel1();
 		model1.train(trainingData);//This will take some time...
@@ -134,6 +162,9 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 		//model1.model1Matrix[][]
 		
 		//double p = 1.0/(srcWords.size() + 1);
+=======
+		double p = 1.0/(srcWords.size() + 1);
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 
 		// build  alignment matrix and distortion matrix
 		for (SentencePair sentencePair : trainingData) {
@@ -143,10 +174,15 @@ public class IBMModel2 extends IBMModel1 implements WordAligner {
 			int srcListLength = srcList.size();				// l
 			int targetListLength = targetList.size();		// m
 			for (int j = 0; j < targetListLength; j++) {
+<<<<<<< HEAD
 				String targetWord = targetList.get(j);
 				for (int i = 0; i < srcListLength; i++) {
 					String srcWord = srcList.get(i);
 					alignmentMatrix.setCount(srcWord, targetWord, model1.getProbability(srcWord, targetWord));
+=======
+				for (int i = 0; i < srcListLength; i++) {
+					alignmentMatrix.setCount(srcList.get(i), targetList.get(j), p);
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 					distortionMatrix.setCount(j, triple(i, srcListLength, targetListLength), random.nextDouble());
 				}
 				//alignmentMatrix.setCount(NULL_WORD, targetList.get(j), p);

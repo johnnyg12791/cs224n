@@ -7,9 +7,15 @@ import cs224n.util.CounterMap;
 
 public class IBMModel1 implements WordAligner {
 
+<<<<<<< HEAD
 	public double[][] model1Matrix;
 	public HashMap<String, Integer> srcMap;
 	public HashMap<String, Integer> targetMap;
+=======
+	private double[][] model1Matrix;
+	private HashMap<String, Integer> srcMap;
+	private HashMap<String, Integer> targetMap;
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 	private static final double CONVERGENCE_FACTOR = 0.05;
 
 	@Override
@@ -39,6 +45,10 @@ public class IBMModel1 implements WordAligner {
 
 		return alignment;
 	}
+<<<<<<< HEAD
+=======
+
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 
 	@Override
 	public void train(List<SentencePair> trainingData) {
@@ -49,7 +59,11 @@ public class IBMModel1 implements WordAligner {
 		int count = 0;
 		boolean convergence = false;
 		while (!convergence) {
+<<<<<<< HEAD
 			System.out.println("Beginning Model1 iteration " + count);
+=======
+			System.out.println("Beginning iteration " + count);
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 			//Psuedocode from http://www.inf.ed.ac.uk/teaching/courses/mt/lectures/ibm-model1.pdf
 			CounterMap<String, String> countMap = new CounterMap<String, String>();
 			Counter<String> normalizationMap = new Counter<String>();
@@ -76,8 +90,13 @@ public class IBMModel1 implements WordAligner {
 			Set<String> srcKeySet = srcMap.keySet();
 			Set<String> targetKeySet = targetMap.keySet();
 			convergence = true;
+<<<<<<< HEAD
 			//System.out.println(normalizationMap.totalCount());
 			//printModel1Matrix();
+=======
+			System.out.println(normalizationMap.totalCount());
+			printModel1Matrix();
+>>>>>>> f765992c004a49c453033e945d1ece8964e6658a
 			for(String srcWord : srcKeySet){
 				for(String targetWord : targetKeySet){
 					double newProbability = countMap.getCount(srcWord, targetWord)/normalizationMap.getCount(srcWord);
