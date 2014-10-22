@@ -74,7 +74,10 @@ public class PCFGParser implements Parser {
     			HandleUnaries(begin, end);
     		}
     	}
-        return null;
+    	printScoreMap();
+    	printBackMap();
+        //return buildTree();
+    	return null;
     }//end of function
     
     
@@ -87,10 +90,13 @@ public class PCFGParser implements Parser {
 			for (String A : lexicon.getAllTags()){//Is this really the right way to get all nonterms??
 				List<UnaryRule> rules = grammar.getUnaryRulesByChild(A);
 				for (UnaryRule rule: rules){//*TODO I'm getting rules by child then rules.parent
-					String B = rule.parent;
-					double probability = rule.score*getScore(begin, end, B);//It's okay if = 0
-					if(probability > getScore(begin, end, A)){
-						setScore(begin, end, A, probability);
+					String B = rule.getParent(); //NP
+					//NP -> N (parent -> child)
+					//A is the child
+					//B is the parent
+					double probability = rule.score*getScore(begin, end, A);//It's okay if = 0
+					if(probability > getScore(begin, end, B)){
+						setScore(begin, end, B, probability);
 						addToBackMap(begin, end, 0, A, B, null);//**Look at how this method is built
 						added = true;
 					}//End of if statement
@@ -132,10 +138,21 @@ public class PCFGParser implements Parser {
     
     //This builds the tree recursively by calling the recursive funtion
     //Dont know exactly how the tree is structured yet...
-    private void buildTree(int bestScore){
+    private Tree<String> buildTree(){
+    	Tree<String> parseTree = new Tree<String>("ROOT");
+    	
+    	double bestScore = 0;
+    	Set<String> bestScoreKeys = scoreMap.get(numWords).get(numWords).keySet();
+    	for(String key : bestScoreKeys){
+    		double tempScore = getScore(numWords, numWords, key);
+    		if(tempScore > bestScore)
+    			bestScore = tempScore;
+    	}
+    	
     	String initialLabel = getInitialLabel(bestScore);
-
     	recursivelyBuildTree(initialLabel, 0, numWords);
+    	
+    	return parseTree;
     }
     
     
@@ -190,6 +207,26 @@ public class PCFGParser implements Parser {
     //helper function to set the score in our map
     private void setScore(int row, int col, String label, double score){
     	scoreMap.get(row).get(col).setCount(label, score);
+    }
+    
+    private void printScoreMap() {
+    	int i = 0;
+    	for (ArrayList<Counter<String>> a : scoreMap) {
+    		int j = 0;
+    		for (Counter<String> c : a) {
+    			System.out.println(i + " " + j + " " + c);
+    			j++;
+    		}
+    		i++;
+    	}
+    }
+    
+    private void printBackMap() {
+    	//System.out.println(back);
+    	for (Triplet<Integer, Integer, String> key : back.keySet()) {
+    		Pair<backTraceData, backTraceData> value = back.get(key);
+    		System.out.println(key + " " + value);
+    	}
     }
     
 }
