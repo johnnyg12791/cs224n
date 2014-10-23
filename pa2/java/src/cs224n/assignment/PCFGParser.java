@@ -18,6 +18,7 @@ public class PCFGParser implements Parser {
     private ArrayList<ArrayList<Counter<String>>> scoreMap;
     private Tree<String> parseTree;
     private Integer numWords;
+    private Map<String, String> terminalMap;
     
     public void train(List<Tree<String>> trainTrees) {
         // TODO: before you generate your grammar, the training trees
@@ -35,13 +36,7 @@ public class PCFGParser implements Parser {
      * Our Main method where we get the best parse
      */
     public Tree<String> getBestParse(List<String> sentence) {
-    	System.out.println(sentence);
-    	/*System.out.println(grammar.binaryRulesByLeftChild.keySet());
-    	System.out.println(grammar.binaryRulesByRightChild.keySet());
-    	Set<String> allNonTerms = new HashSet<String>();
-    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());*/
+    	//System.out.println(sentence);
     	numWords = sentence.size();
     	// Initialization
     	initializeScoreMap();
@@ -51,6 +46,7 @@ public class PCFGParser implements Parser {
     		for (String nonterm : lexicon.getAllTags()) {
     			double d = lexicon.scoreTagging(sentence.get(i), nonterm);
     			scoreMap.get(i).get(i + 1).setCount(nonterm, d);//WHY do we need to split this up??
+    			addToBackMap(i, i+1, 0, nonterm, sentence.get(i), null);
     		}
     		HandleUnaries(i, i+1);
     	}
@@ -71,7 +67,7 @@ public class PCFGParser implements Parser {
     							if (rule.rightChild.equals(C)) {
     								//System.out.println("YAY");
     								// Update the scoreMap
-    								System.out.println(rule);
+    								//System.out.println(rule);
     								double probability = getScore(begin, split, B)*getScore(split, end, C)*rule.getScore();
     	    						if(probability > getScore(begin, end, rule.parent)){
     	    							setScore(begin, end, rule.parent, probability);
@@ -85,8 +81,8 @@ public class PCFGParser implements Parser {
     			HandleUnaries(begin, end);
     		}
     	}
-    	printScoreMap();
-    	printBackMap();
+    	//printScoreMap();
+    	//printBackMap();
         return buildTree();
     	//return null;
     }//end of function
@@ -158,39 +154,50 @@ public class PCFGParser implements Parser {
     	double bestScore = 0;
     	Set<String> bestScoreKeys = scoreMap.get(0).get(numWords).keySet();
     	for(String key : bestScoreKeys){
-    		double tempScore = getScore(numWords, numWords, key);
+    		double tempScore = getScore(0, numWords, key);
     		if(tempScore > bestScore)
     			bestScore = tempScore;
     	}
     	
     	String initialLabel = getInitialLabel(bestScore);
-    	System.out.println(bestScore);
-    	System.out.println(initialLabel);
+    	//System.out.println(bestScore);
+    	//System.out.println(initialLabel);
     	
     	Tree<String> parseTree = new Tree<String>(initialLabel);
-    	recursivelyBuildTree(initialLabel, 0, numWords);
+    	recursivelyBuildTree(parseTree, initialLabel, 0, numWords);
     	
-    	return parseTree;
+    	return TreeAnnotations.unAnnotateTree(parseTree);
     }
     
     
     //Given the first label, we want to build the rest of our tree
-    private void recursivelyBuildTree(String initialLabel, int start, int end){
+    private void recursivelyBuildTree(Tree<String> tree, String label, int start, int end){
     	//base case
-    	if(end-start == 1){
-    		//This means I'm only 1 away, get ready to finish...
-    	}
+
     	//recursion
-    	Triplet<Integer, Integer, String> curTriple = new Triplet<Integer, Integer, String>(start, end, initialLabel);
+    	Triplet<Integer, Integer, String> curTriple = new Triplet<Integer, Integer, String>(start, end, label);
 
     	Pair<backTraceData, backTraceData> curPair = back.get(curTriple);
     	//Add to the tree, cur pair
+    	if(curPair == null){ //I think this is how we get all our terminals
+    		//This means I'm only 1 away, get ready to finish...
+    		return;
+    	}
     	backTraceData leftSide = curPair.getFirst();
     	backTraceData rightSide = curPair.getSecond();
-    	//How do I add to tree.... pass in the label to tree
-    	//then recurse branch left with (start, end, label), right with (start, end, label)
-    	String leftLabel = leftSide.label;
-    	String rightLabel = rightSide.label;
+    	
+    	Tree<String> leftTree = new Tree<String>(leftSide.label);
+    	List<Tree<String>> children = new ArrayList<Tree<String>>();
+    	//Left tree
+    	recursivelyBuildTree(leftTree, leftSide.label, leftSide.leftFence, leftSide.rightFence);
+    	children.add(leftTree);
+    	tree.setChildren(children);
+    	//Then right tree
+    	if(rightSide != null){
+    		Tree<String> rightTree = new Tree<String>(rightSide.label);
+        	recursivelyBuildTree(rightTree, rightSide.label, rightSide.leftFence, rightSide.rightFence);
+        	children.add(rightTree);
+    	}
     }
     
     //A simple class to store our data for backtraces
