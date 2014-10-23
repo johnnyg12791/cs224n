@@ -36,6 +36,12 @@ public class PCFGParser implements Parser {
      */
     public Tree<String> getBestParse(List<String> sentence) {
     	System.out.println(sentence);
+    	/*System.out.println(grammar.binaryRulesByLeftChild.keySet());
+    	System.out.println(grammar.binaryRulesByRightChild.keySet());
+    	Set<String> allNonTerms = new HashSet<String>();
+    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());*/
     	numWords = sentence.size();
     	// Initialization
     	initializeScoreMap();
@@ -51,43 +57,52 @@ public class PCFGParser implements Parser {
     	
     	//Now we have added the first "level" (0,0), (1,1), (2,2)... of our dynamic pyramid
     	//Time to move on up...
-    	for(int span = 1; span < numWords; span++){
-    		for(int begin = 0; begin < numWords - span; begin++){
+    	for(int span = 2; span <= numWords; span++){
+    		for(int begin = 0; begin <= numWords - span; begin++){
     			int end = begin + span; //double check indicies on these
-    			for (int split = begin+1; split < end-1; split++){
-    				for(String A : lexicon.getAllTags()){//(should we make this an iVar (lex.getAllTags()?)
-    					//Get binary rules for String A (why left child)
-    					//Do i need to repeat this for right child as well??
-    					//I only have one A, just one child...
-    					List<BinaryRule> rules = grammar.getBinaryRulesByLeftChild(A);
-    					for(BinaryRule rule: rules){
-    						String B = rule.getLeftChild();
-    						String C = rule.getRightChild();
-    						double probability = getScore(begin, split, B)*getScore(split, end, C)*rule.getScore();
-    						if(probability > getScore(begin, end, A)){
-    							setScore(begin, end, A, probability);
-    							addToBackMap(begin, end, split, A, B, C);
-    						}//End of if probability > loop
-    					}//End of going through all rules (B,C)
-    				}//End of going though all nonterminals (A)
+    			for (int split = begin+1; split <= end-1; split++){
+    				for (String B : scoreMap.get(begin).get(split).keySet()){
+    					List<BinaryRule> leftRules = grammar.getBinaryRulesByLeftChild(B);
+    					//System.out.println("B: " + B + " lefts: " + leftRules);
+    					for (BinaryRule rule : leftRules) {
+    						// Left is just the name of a binary rule
+    						//System.out.println("Split: " + split + ", End: " + end);
+    						for (String C : scoreMap.get(split).get(end).keySet()) {
+    							if (rule.rightChild.equals(C)) {
+    								//System.out.println("YAY");
+    								// Update the scoreMap
+    								System.out.println(rule);
+    								double probability = getScore(begin, split, B)*getScore(split, end, C)*rule.getScore();
+    	    						if(probability > getScore(begin, end, rule.parent)){
+    	    							setScore(begin, end, rule.parent, probability);
+    	    							addToBackMap(begin, end, split, rule.parent, B, C);
+    	    						}//End of if probability > loop
+    							}
+    						}
+    					}
+    				}
     			}//End of splits
     			HandleUnaries(begin, end);
     		}
     	}
     	printScoreMap();
     	printBackMap();
-        //return buildTree();
-    	return null;
+        return buildTree();
+    	//return null;
     }//end of function
     
     
     //Handles unaries according to slide psuedocode (pg 39, 40)
     //https://class.stanford.edu/c4x/Engineering/CS-224N/asset/SLoSP-2012-2.pdf
     private void HandleUnaries(int begin, int end){
+    	Set<String> allNonTerms = new HashSet<String>();
+    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
     	boolean added = true;
 		while (added) {
 			added = false;
-			for (String A : lexicon.getAllTags()){//Is this really the right way to get all nonterms??
+			for (String A : allNonTerms){
 				List<UnaryRule> rules = grammar.getUnaryRulesByChild(A);
 				for (UnaryRule rule: rules){//*TODO I'm getting rules by child then rules.parent
 					String B = rule.getParent(); //NP
@@ -97,7 +112,7 @@ public class PCFGParser implements Parser {
 					double probability = rule.score*getScore(begin, end, A);//It's okay if = 0
 					if(probability > getScore(begin, end, B)){
 						setScore(begin, end, B, probability);
-						addToBackMap(begin, end, 0, A, B, null);//**Look at how this method is built
+						addToBackMap(begin, end, 0, B, A, null);//**Look at how this method is built
 						added = true;
 					}//End of if statement
 				}//for unary rules end
@@ -139,10 +154,9 @@ public class PCFGParser implements Parser {
     //This builds the tree recursively by calling the recursive funtion
     //Dont know exactly how the tree is structured yet...
     private Tree<String> buildTree(){
-    	Tree<String> parseTree = new Tree<String>("ROOT");
     	
     	double bestScore = 0;
-    	Set<String> bestScoreKeys = scoreMap.get(numWords).get(numWords).keySet();
+    	Set<String> bestScoreKeys = scoreMap.get(0).get(numWords).keySet();
     	for(String key : bestScoreKeys){
     		double tempScore = getScore(numWords, numWords, key);
     		if(tempScore > bestScore)
@@ -150,6 +164,10 @@ public class PCFGParser implements Parser {
     	}
     	
     	String initialLabel = getInitialLabel(bestScore);
+    	System.out.println(bestScore);
+    	System.out.println(initialLabel);
+    	
+    	Tree<String> parseTree = new Tree<String>(initialLabel);
     	recursivelyBuildTree(initialLabel, 0, numWords);
     	
     	return parseTree;
@@ -185,6 +203,10 @@ public class PCFGParser implements Parser {
     		this.label = label;
     		this.leftFence = leftFence;
     		this.rightFence = rightFence;
+    	}
+    	
+    	public String toString(){
+    		return label + "->[" + leftFence + ", " + rightFence + "]";
     	}
     }
     
