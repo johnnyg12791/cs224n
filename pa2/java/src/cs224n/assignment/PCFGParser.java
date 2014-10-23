@@ -17,8 +17,10 @@ public class PCFGParser implements Parser {
 	private Map<Triplet<Integer, Integer, String>, Pair<backTraceData, backTraceData>> back;
     private ArrayList<ArrayList<Counter<String>>> scoreMap;
     private Tree<String> parseTree;
-    private Integer numWords;
+    private int numWords;
     private Map<String, String> terminalMap;
+    private Set<String> lexiconTags;
+    private Set<String> allNonTerms;
     
     public void train(List<Tree<String>> trainTrees) {
         // TODO: before you generate your grammar, the training trees
@@ -30,6 +32,11 @@ public class PCFGParser implements Parser {
     	}
         lexicon = new Lexicon(trainTrees);
         grammar = new Grammar(trainTrees);
+        lexiconTags = lexicon.getAllTags();
+        allNonTerms = new HashSet<String>();
+    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
+    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
     }
 
     /*
@@ -42,8 +49,8 @@ public class PCFGParser implements Parser {
     	initializeScoreMap();
     	//This is stage 1 of our dynamic programming, the "base"
     	back = new HashMap<Triplet<Integer, Integer, String>, Pair<backTraceData, backTraceData>>();
-    	for (int i = 0; i < sentence.size(); i++) {
-    		for (String nonterm : lexicon.getAllTags()) {
+    	for (int i = 0; i < numWords; i++) {
+    		for (String nonterm : lexiconTags) {
     			double d = lexicon.scoreTagging(sentence.get(i), nonterm);
     			scoreMap.get(i).get(i + 1).setCount(nonterm, d);//WHY do we need to split this up??
     			addToBackMap(i, i+1, 0, nonterm, sentence.get(i), null);
@@ -57,13 +64,15 @@ public class PCFGParser implements Parser {
     		for(int begin = 0; begin <= numWords - span; begin++){
     			int end = begin + span; //double check indicies on these
     			for (int split = begin+1; split <= end-1; split++){
-    				for (String B : scoreMap.get(begin).get(split).keySet()){
+    				Set<String> leftLabels = scoreMap.get(begin).get(split).keySet();
+    				for (String B : leftLabels){
     					List<BinaryRule> leftRules = grammar.getBinaryRulesByLeftChild(B);
     					//System.out.println("B: " + B + " lefts: " + leftRules);
     					for (BinaryRule rule : leftRules) {
     						// Left is just the name of a binary rule
     						//System.out.println("Split: " + split + ", End: " + end);
-    						for (String C : scoreMap.get(split).get(end).keySet()) {
+    						Set<String> rightLabels = scoreMap.get(split).get(end).keySet();
+    						for (String C : rightLabels) {
     							if (rule.rightChild.equals(C)) {
     								//System.out.println("YAY");
     								// Update the scoreMap
@@ -91,10 +100,6 @@ public class PCFGParser implements Parser {
     //Handles unaries according to slide psuedocode (pg 39, 40)
     //https://class.stanford.edu/c4x/Engineering/CS-224N/asset/SLoSP-2012-2.pdf
     private void HandleUnaries(int begin, int end){
-    	Set<String> allNonTerms = new HashSet<String>();
-    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
     	boolean added = true;
 		while (added) {
 			added = false;
@@ -191,13 +196,15 @@ public class PCFGParser implements Parser {
     	//Left tree
     	recursivelyBuildTree(leftTree, leftSide.label, leftSide.leftFence, leftSide.rightFence);
     	children.add(leftTree);
-    	tree.setChildren(children);
+    	
     	//Then right tree
     	if(rightSide != null){
     		Tree<String> rightTree = new Tree<String>(rightSide.label);
         	recursivelyBuildTree(rightTree, rightSide.label, rightSide.leftFence, rightSide.rightFence);
         	children.add(rightTree);
     	}
+    	
+    	tree.setChildren(children);
     }
     
     //A simple class to store our data for backtraces
