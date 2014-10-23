@@ -18,7 +18,6 @@ public class PCFGParser implements Parser {
     private ArrayList<ArrayList<Counter<String>>> scoreMap;
     private Tree<String> parseTree;
     private int numWords;
-    private Map<String, String> terminalMap;
     private Set<String> lexiconTags;
     private Set<String> allNonTerms;
     
@@ -33,10 +32,10 @@ public class PCFGParser implements Parser {
         lexicon = new Lexicon(trainTrees);
         grammar = new Grammar(trainTrees);
         lexiconTags = lexicon.getAllTags();
-        allNonTerms = new HashSet<String>();
-    	allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
-    	allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
+        //allNonTerms = new HashSet<String>();
+    	//allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
+    	//allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
+    	//allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
     }
 
     /*
@@ -52,7 +51,8 @@ public class PCFGParser implements Parser {
     	for (int i = 0; i < numWords; i++) {
     		for (String terminal : lexiconTags) {
     			double d = lexicon.scoreTagging(sentence.get(i), terminal);
-    			scoreMap.get(i).get(i + 1).setCount(terminal, d);//WHY do we need to split this up??
+    			//scoreMap.get(i).get(i + 1).setCount(terminal, d);
+    			setScore(i, i+1, terminal, d);
     			addToBackMap(i, i+1, -1, terminal, sentence.get(i), null);
     		}
     		long startTime = System.currentTimeMillis();
@@ -108,47 +108,30 @@ public class PCFGParser implements Parser {
     //https://class.stanford.edu/c4x/Engineering/CS-224N/asset/SLoSP-2012-2.pdf
     private void HandleUnaries(int begin, int end){
     	boolean added = true;
+    	Set<String> nonTerms = new HashSet<String>(grammar.unaryRulesByChild.keySet());
 		while (added) {
 			added = false;
 			Set<String> leftSides = scoreMap.get(begin).get(end).keySet();
-			/*for (String B : leftSides){
-				double BScore = getScore(begin, end, B);
-				List<UnaryRule> leftRules = grammar.getUnaryRulesByChild(B);
-				for (UnaryRule rule : leftRules) {
-					System.out.println("Parent: " + rule.parent);
-					System.out.println("Rule: " + rule);
-					System.out.println("Child: " + rule.child);
-					System.out.println("B: "+ B);
-					// Left is just the name of a binary rule
-					double ruleScore = rule.getScore();
-					double parentScore = getScore(begin, end, rule.parent);
-					// Update the scoreMap
-					double probability = BScore*ruleScore;
-    				if(probability > parentScore){
-    					setScore(begin, end, rule.parent, probability);
-    					addToBackMap(begin, end, 0, rule.parent, B, null);
-    				}//End of if probability > loop
-				}
-			}*/
-			
-			for (String A : allNonTerms){
+			Set<String> newNonTerms = new HashSet<String>();
+			//System.out.println(nonTerms.size()); Look how the size of the nonTerms gets smaller
+
+			for (String A : nonTerms){
 				List<UnaryRule> rules = grammar.getUnaryRulesByChild(A);
 				for (UnaryRule rule: rules){
 					if(leftSides.contains(rule.child)){ //only go with ones that are in the left side
 						String B = rule.getParent(); //NP
-						//NP -> N (parent -> child)
-						//A is the child
-						//B is the parent
-						double probability = rule.score*getScore(begin, end, A);//It's okay if = 0
-						if(probability > getScore(begin, end, B)){
-							//System.out.println("Important A, B: " + A + B);
-							setScore(begin, end, B, probability);
+						//NP -> N (parent(B) -> child(A))
+						double probability = rule.score*scoreMap.get(begin).get(end).getCount(A);//It's okay if = 0
+						if(probability > scoreMap.get(begin).get(end).getCount(B)){
+							scoreMap.get(begin).get(end).setCount(B, probability);
 							addToBackMap(begin, end, 0, B, A, null);//**Look at how this method is built
 							added = true;
+							newNonTerms.add(A);//Just add the new child-nonTerms
 						}
 					}//End of if statement
 				}//for unary rules end
 			}//for String A (nonterms)*/
+			nonTerms = newNonTerms;
 		}//End of while loop (unary conditions
     }//End of function
     
@@ -193,9 +176,9 @@ public class PCFGParser implements Parser {
     		double tempScore = getScore(0, numWords, key);
     		if(tempScore > bestScore)
     			bestScore = tempScore;
-    	}*/
-    	
-    	//String initialLabel = getInitialLabel(bestScore);
+    	}
+    	String initialLabel = getInitialLabel(bestScore);*/
+    	//Above doesn't matter if we know to start at root every time
     	Tree<String> parseTree = new Tree<String>("ROOT");
     	recursivelyBuildTree(parseTree, "ROOT", 0, numWords);
     	

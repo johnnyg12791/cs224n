@@ -53,6 +53,10 @@ public class TreeAnnotations {
 		Tree<String> leftTree = tree.getChildren().get(numChildrenGenerated);
 		List<Tree<String>> children = new ArrayList<Tree<String>>();
 		children.add(binarizeTree(leftTree));
+		/*if (numChildrenGenerated == tree.getChildren().size() - 2) {
+			//Tree<String> rightTree = binarizeTree();
+			children.add(tree);
+		}*/
 		if (numChildrenGenerated < tree.getChildren().size() - 1) {
 			Tree<String> rightTree = 
 					binarizeTreeHelper(tree, numChildrenGenerated + 1, 
