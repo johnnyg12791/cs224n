@@ -14,12 +14,11 @@ import cs224n.assignment.Grammar.*;
 public class PCFGParser implements Parser {
     private Grammar grammar;
     private Lexicon lexicon;
-	private Map<Triplet<Integer, Integer, String>, Pair<backTraceData, backTraceData>> back;
+	private ArrayList<ArrayList<Map<String, Triplet<Integer, String, String>>>> back2;
     private ArrayList<ArrayList<Counter<String>>> scoreMap;
-    private Tree<String> parseTree;
     private int numWords;
     private Set<String> lexiconTags;
-    private Set<String> allNonTerms;
+    private int numSentences = 0;
     
     public void train(List<Tree<String>> trainTrees) {
         // TODO: before you generate your grammar, the training trees
@@ -32,39 +31,38 @@ public class PCFGParser implements Parser {
         lexicon = new Lexicon(trainTrees);
         grammar = new Grammar(trainTrees);
         lexiconTags = lexicon.getAllTags();
-        //allNonTerms = new HashSet<String>();
-    	//allNonTerms.addAll(grammar.unaryRulesByChild.keySet());
-    	//allNonTerms.addAll(grammar.binaryRulesByLeftChild.keySet());
-    	//allNonTerms.addAll(grammar.binaryRulesByRightChild.keySet());
     }
 
     /*
      * Our Main method where we get the best parse
      */
     public Tree<String> getBestParse(List<String> sentence) {
-    	System.out.println(sentence);
+    	numSentences++;
+    	//System.out.println(sentence);
     	numWords = sentence.size();
     	// Initialization
     	initializeScoreMap();
     	//This is stage 1 of our dynamic programming, the "base"
-    	back = new HashMap<Triplet<Integer, Integer, String>, Pair<backTraceData, backTraceData>>();
+    	initializeBackMap();
     	for (int i = 0; i < numWords; i++) {
     		for (String terminal : lexiconTags) {
     			double d = lexicon.scoreTagging(sentence.get(i), terminal);
     			//scoreMap.get(i).get(i + 1).setCount(terminal, d);
     			setScore(i, i+1, terminal, d);
-    			addToBackMap(i, i+1, -1, terminal, sentence.get(i), null);
+    			Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(-2, sentence.get(i), "");
+    			back2.get(i).get(i+1).put(terminal, newTriplet);
     		}
-    		long startTime = System.currentTimeMillis();
+    		//long startTime = System.currentTimeMillis();
     		HandleUnaries(i, i+1);
-    		long endTime = System.currentTimeMillis();
-    		System.out.println("Unaries 1: " + (endTime - startTime) + " milliseconds");    		
+    		//long endTime = System.currentTimeMillis();
+    		//System.out.println("Unaries 1: " + (endTime - startTime) + " milliseconds");    		
 
     	}
     	
     	//Now we have added the first "level" (0,0), (1,1), (2,2)... of our dynamic pyramid
     	//Time to move on up...
     	for(int span = 2; span <= numWords; span++){
+    		//long startTime2 = System.currentTimeMillis();
     		for(int begin = 0; begin <= numWords - span; begin++){
     			int end = begin + span; //double check indicies on these
     			for (int split = begin+1; split <= end-1; split++){
@@ -77,30 +75,25 @@ public class PCFGParser implements Parser {
     						// Left is just the name of a binary rule
     						double ruleScore = rule.getScore();
     						double parentScore = getScore(begin, end, rule.parent);
-    						Set<String> rightLabels = scoreMap.get(split).get(end).keySet();
-    						for (String C : rightLabels) {
-    							if (rule.rightChild.equals(C)) {
-    								// Update the scoreMap
-    								double probability = BScore*getScore(split, end, C)*ruleScore;
-    	    						if(probability > parentScore){
-    	    							setScore(begin, end, rule.parent, probability);
-    	    							addToBackMap(begin, end, split, rule.parent, B, C);
-    	    						}//End of if probability > loop
-    							}
-    						}
+    						String C = rule.rightChild;
+
+    						double probability = BScore*getScore(split, end, C)*ruleScore;
+    	    				if(probability > parentScore){
+    	    					setScore(begin, end, rule.parent, probability);
+    	    			    	Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(split, B, C);
+    	    			    	back2.get(begin).get(end).put(rule.parent, newTriplet);
+    	    				}
     					}
     				}
     			}//End of splits
-        		long startTime = System.currentTimeMillis();
     			HandleUnaries(begin, end);
-        		long endTime = System.currentTimeMillis();
-        		System.out.println("Unaries 2 " + (endTime - startTime) + " milliseconds");   
     		}
+    		//long endTime2 = System.currentTimeMillis();
+    		//System.out.ln("Span Loop: " + (endTime2 - startTime2) + " milliseconds");   
     	}
-    	printScoreMap();
-    	printBackMap();
+    	//printScoreMap();
+    	System.out.println(numSentences);
         return buildTree();
-    	//return null;
     }//end of function
     
     
@@ -113,10 +106,11 @@ public class PCFGParser implements Parser {
 			added = false;
 			Set<String> leftSides = scoreMap.get(begin).get(end).keySet();
 			Set<String> newNonTerms = new HashSet<String>();
-			//System.out.println(nonTerms.size()); Look how the size of the nonTerms gets smaller
+			//System.out.println(nonTerms.size()); //Look how the size of the nonTerms gets smaller
 
 			for (String A : nonTerms){
 				List<UnaryRule> rules = grammar.getUnaryRulesByChild(A);
+				//System.out.println("numRules: " + rules.size());
 				for (UnaryRule rule: rules){
 					if(leftSides.contains(rule.child)){ //only go with ones that are in the left side
 						String B = rule.getParent(); //NP
@@ -124,7 +118,10 @@ public class PCFGParser implements Parser {
 						double probability = rule.score*scoreMap.get(begin).get(end).getCount(A);//It's okay if = 0
 						if(probability > scoreMap.get(begin).get(end).getCount(B)){
 							scoreMap.get(begin).get(end).setCount(B, probability);
-							addToBackMap(begin, end, 0, B, A, null);//**Look at how this method is built
+							//addToBackMap(begin, end, 0, B, A, null);//**Look at how this method is built
+			    			Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(-1, A, "");
+			    			back2.get(begin).get(end).put(B, newTriplet);
+			    			
 							added = true;
 							newNonTerms.add(A);//Just add the new child-nonTerms
 						}
@@ -147,115 +144,75 @@ public class PCFGParser implements Parser {
 	   	}
     }
     
-    
-    //Create the new datastructures necessary for our backtrace map, then add it
-    private void addToBackMap(int start, int end, int split, String A, String B, String C){
-    	Triplet<Integer, Integer, String> triple = new Triplet<Integer, Integer, String>(start, end, A);
-    	backTraceData left;
-    	backTraceData right;
-    	if(C != null){//This is the binary condition
-	    	left = new backTraceData(B, start, split);
-	    	right = new backTraceData(C, split, end);
-    	}else{//This is the unary condition (for our first level)
-    		left = new backTraceData(B, start, end);
-    		right = null;
+    //Initialize back map
+    private void initializeBackMap(){
+    	back2 = new ArrayList<ArrayList<Map<String, Triplet<Integer, String, String>>>>();
+    	for (int i = 0; i < numWords + 1; i++){
+    		back2.add(new ArrayList<Map<String, Triplet<Integer, String, String>>>());
+    		for (int j = 0; j < numWords + 1; j++){
+    			back2.get(i).add(new HashMap<String, Triplet<Integer, String, String>>());
+    		}
     	}
-    	Pair<backTraceData, backTraceData> pair = new Pair<backTraceData, backTraceData>(left, right);
-
-    	back.put(triple, pair);
-    	
     }
     
+    
     //This builds the tree recursively by calling the recursive funtion
-    //Dont know exactly how the tree is structured yet...
     private Tree<String> buildTree(){
-    	
-    	/*double bestScore = 0;
-    	Set<String> bestScoreKeys = scoreMap.get(0).get(numWords).keySet();
-    	for(String key : bestScoreKeys){
-    		double tempScore = getScore(0, numWords, key);
-    		if(tempScore > bestScore)
-    			bestScore = tempScore;
-    	}
-    	String initialLabel = getInitialLabel(bestScore);*/
     	//Above doesn't matter if we know to start at root every time
     	Tree<String> parseTree = new Tree<String>("ROOT");
+    	//System.out.println(back2);
     	recursivelyBuildTree(parseTree, "ROOT", 0, numWords);
-    	
     	return TreeAnnotations.unAnnotateTree(parseTree);
     }
     
     
     //Given the first label, we want to build the rest of our tree
     private void recursivelyBuildTree(Tree<String> tree, String label, int start, int end){
-    	Triplet<Integer, Integer, String> curTriple = new Triplet<Integer, Integer, String>(start, end, label);
-    	Pair<backTraceData, backTraceData> curPair = back.get(curTriple);
-    	//Base case
-    	if(curPair == null){
+    	//Triplet<Integer, Integer, String> curTriple = new Triplet<Integer, Integer, String>(start, end, label);
+    	Triplet<Integer, String, String> curTriple = back2.get(start).get(end).get(label);
+    	//System.out.println(curTriple);
+    	if(curTriple  == null){
     		return;
     	}
-    	//This means we have a terminal
-    	if(curTriple.getSecond() == -1){
-    		System.out.println("Hit terminal");
-    		System.out.println(curTriple.toString() + "..." + curPair.toString());
+    	int split = curTriple.getFirst();
+    	//Triplet<Integer, String, String> leftTriple = back2.get(start).get(split)
+    	if(split == -2){
+    		
+    		//System.out.println("Hit terminal");
+    		String terminalString = curTriple.getSecond();
+    		Tree<String> terminalTree = new Tree<String>(terminalString);
+    		List<Tree<String>> child = new ArrayList<Tree<String>>();
+    		child.add(terminalTree);
+    		tree.setChildren(child);
     		return;
     	}
-    	//Get the sides of each of our tree
-    	backTraceData leftSide = curPair.getFirst();
-    	backTraceData rightSide = curPair.getSecond();
-    	
-    	Tree<String> leftTree = new Tree<String>(leftSide.label);
-    	List<Tree<String>> children = new ArrayList<Tree<String>>();
-    	//Left tree
-    	System.out.println(leftSide.toString());
-    	System.out.println("label: " + label + " leftSideLabel :" + leftSide.label);
-    	/*if(label.equals(leftSide.label)){
-    		if(start == numWords -1){
-    			children.add(leftTree);
-    			tree.setChildren(children);
-    		}
-    		return;
-    	}*/
-    	recursivelyBuildTree(leftTree, leftSide.label, leftSide.leftFence, leftSide.rightFence);
-    	children.add(leftTree);
-    	
-    	//Then right tree
-    	if(rightSide != null){
-    		Tree<String> rightTree = new Tree<String>(rightSide.label);
-        	recursivelyBuildTree(rightTree, rightSide.label, rightSide.leftFence, rightSide.rightFence);
-        	children.add(rightTree);
+    	//This is the case of a regular binary rule
+    	if(split != -1){
+    		String leftString = curTriple.getSecond();
+    		String rightString = curTriple.getThird();
+
+    		Tree<String> leftTree = new Tree<String>(leftString);
+    		List<Tree<String>> children = new ArrayList<Tree<String>>();
+    		recursivelyBuildTree(leftTree, leftString, start, split);
+    		children.add(leftTree);
+    		
+    		Tree<String> rightTree = new Tree<String>(rightString);
+    		recursivelyBuildTree(rightTree, rightString, split, end);
+    		children.add(rightTree);
+    		tree.setChildren(children);
     	}
-    	
-    	tree.setChildren(children);
-    }
-    
-    //A simple class to store our data for backtraces
-    static class backTraceData{
-    	String label;
-    	int leftFence;
-    	int rightFence;
-    	
-    	public backTraceData(String label, int leftFence, int rightFence){
-    		this.label = label;
-    		this.leftFence = leftFence;
-    		this.rightFence = rightFence;
-    	}
-    	
-    	public String toString(){
-    		return label + "->[" + leftFence + ", " + rightFence + "]";
+    	//nonterminal unary condition (only build left tree
+    	if(split == -1){
+    		String leftString = curTriple.getSecond();
+    		Tree<String> leftTree = new Tree<String>(leftString);
+    		List<Tree<String>> children = new ArrayList<Tree<String>>();
+    		recursivelyBuildTree(leftTree, leftString, start, end);
+    		children.add(leftTree);
+    		tree.setChildren(children);
+    		
     	}
     }
-    
-    //Gets the starting label for our backtrace
-    private String getInitialLabel(double bestScore){
-    	Set<String> finalLabels =  scoreMap.get(0).get(numWords).keySet();
-    	for(String label : finalLabels){
-    		if(getScore(0, numWords, label) == bestScore)
-    			return label;
-    	}
-    	System.out.println("Error 1, we should not reach here");
-    	return null;
-    }
+
     
     //helper function to return the score, returns 0 if there is no count (via getCount in counter)
     private double getScore(int row, int col, String label){
@@ -278,13 +235,6 @@ public class PCFGParser implements Parser {
     		i++;
     	}
     }
-    
-    private void printBackMap() {
-    	//System.out.println(back);
-    	for (Triplet<Integer, Integer, String> key : back.keySet()) {
-    		Pair<backTraceData, backTraceData> value = back.get(key);
-    		System.out.println(key + " " + value);
-    	}
-    }
+   
     
 }
