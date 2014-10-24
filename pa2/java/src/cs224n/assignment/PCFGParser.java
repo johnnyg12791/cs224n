@@ -201,7 +201,7 @@ public class PCFGParser implements Parser {
     		children.add(rightTree);
     		tree.setChildren(children);
     	}
-    	//nonterminal unary condition (only build left tree
+    	//nonterminal unary condition (only build left tree)
     	if(split == -1){
     		String leftString = curTriple.getSecond();
     		Tree<String> leftTree = new Tree<String>(leftString);
