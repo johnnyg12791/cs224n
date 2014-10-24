@@ -30,10 +30,10 @@ public class TreeAnnotations {
 		// order vertical markov process
 		
 		//Recurse through the tree and add "^" between 
-		//System.out.println(unAnnotatedTree);
+		System.out.println(unAnnotatedTree);
 		addVerticalMarkovization(unAnnotatedTree);
 		//return binarizeTree(unAnnotatedTree);
-		//System.out.println(unAnnotatedTree);
+		System.out.println(unAnnotatedTree);
 		return binarizeTree(unAnnotatedTree);
 
 	}
@@ -58,7 +58,7 @@ public class TreeAnnotations {
 	//This adds the markovization to our tree
 	private static void addVerticalMarkovization (Tree<String> tree){
 		//System.out.println(tree);		
-
+		System.out.println("Preterms: " + tree.getPreTerminalYield());
 		Queue<Tree<String>> treeQueue = new LinkedBlockingQueue<Tree<String>>();
 		treeQueue.add(tree);
 		while(!treeQueue.isEmpty()){
@@ -67,18 +67,20 @@ public class TreeAnnotations {
 			String tempLabel = curTree.getLabel();
 			System.out.println(tempLabel);
 			String[] parentLabels = tempLabel.split("\\^");
-			
-			String parentLabel = parentLabels[parentLabels.length-1];
+
+			String parentLabel = parentLabels[0];
 			//System.out.println("Parent: " + parentLabel);
 			List<Tree<String>> children = curTree.getChildren();
 			for(Tree<String> childTree : children){
-				String markovChildString = (parentLabel + "^" + childTree.getLabel());
-				//System.out.println(markovChildString);
-				childTree.setLabel(markovChildString);
-				treeQueue.add(childTree);
+				if(!tree.getPreTerminalYield().contains(childTree.getLabel())){
+					String markovChildString = (childTree.getLabel() + "^" + parentLabel);
+					//System.out.println(markovChildString);
+					childTree.setLabel(markovChildString);
+					treeQueue.add(childTree);
 				}
 			}
 		}
+	}
 		
 	private static Tree<String> binarizeTree(Tree<String> tree) {
 		String label = tree.getLabel();
