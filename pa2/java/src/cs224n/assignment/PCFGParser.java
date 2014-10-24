@@ -36,7 +36,6 @@ public class PCFGParser implements Parser {
      */
     public Tree<String> getBestParse(List<String> sentence) {
     	numSentences++;
-    	//System.out.println(sentence);
     	numWords = sentence.size();
     	// Initialization
     	initializeScoreMap();
@@ -45,7 +44,6 @@ public class PCFGParser implements Parser {
     	for (int i = 0; i < numWords; i++) {
     		for (String terminal : lexiconTags) {
     			double d = lexicon.scoreTagging(sentence.get(i), terminal);
-    			//scoreMap.get(i).get(i + 1).setCount(terminal, d);
     			setScore(i, i+1, terminal, d);
     			Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(-2, sentence.get(i), "");
     			back2.get(i).get(i+1).put(terminal, newTriplet);
@@ -68,15 +66,13 @@ public class PCFGParser implements Parser {
     				for (String B : leftLabels){
     					double BScore = getScore(begin, split, B);
     					List<BinaryRule> leftRules = grammar.getBinaryRulesByLeftChild(B);
-    					//System.out.println("B: " + B + " lefts: " + leftRules);
     					for (BinaryRule rule : leftRules) {
     						// Left is just the name of a binary rule
     						double ruleScore = rule.getScore();
     						double parentScore = getScore(begin, end, rule.parent);
     						String C = rule.rightChild;
-
     						double probability = BScore*getScore(split, end, C)*ruleScore;
-    	    				if(probability > parentScore){
+    	    				if(probability > parentScore){    	    					
     	    					setScore(begin, end, rule.parent, probability);
     	    			    	Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(split, B, C);
     	    			    	back2.get(begin).get(end).put(rule.parent, newTriplet);
@@ -90,7 +86,6 @@ public class PCFGParser implements Parser {
     		//System.out.ln("Span Loop: " + (endTime2 - startTime2) + " milliseconds");   
     	}
     	//printScoreMap();
-    	System.out.println(numSentences);
         return buildTree();
     }//end of function
     
@@ -108,7 +103,6 @@ public class PCFGParser implements Parser {
 
 			for (String A : nonTerms){
 				List<UnaryRule> rules = grammar.getUnaryRulesByChild(A);
-				//System.out.println("numRules: " + rules.size());
 				for (UnaryRule rule: rules){
 					if(leftSides.contains(rule.child)){ //only go with ones that are in the left side
 						String B = rule.getParent(); //NP
@@ -116,10 +110,8 @@ public class PCFGParser implements Parser {
 						double probability = rule.score*scoreMap.get(begin).get(end).getCount(A);//It's okay if = 0
 						if(probability > scoreMap.get(begin).get(end).getCount(B)){
 							scoreMap.get(begin).get(end).setCount(B, probability);
-							//addToBackMap(begin, end, 0, B, A, null);//**Look at how this method is built
 			    			Triplet<Integer, String, String> newTriplet = new Triplet<Integer, String, String>(-1, A, "");
 			    			back2.get(begin).get(end).put(B, newTriplet);
-			    			
 							added = true;
 							newNonTerms.add(A);//Just add the new child-nonTerms
 						}
@@ -161,9 +153,9 @@ public class PCFGParser implements Parser {
     	//System.out.println(back2);
     	recursivelyBuildTree(parseTree, "ROOT", 0, numWords);
     	//unmarkov
-    	printScoreMap();
-    	System.out.println(parseTree);
-    	return TreeAnnotations.unAnnotateTree(TreeAnnotations.unMarkovTree(parseTree));
+    	//printScoreMap();
+    	//System.out.println(parseTree);
+    	return TreeAnnotations.unAnnotateTree(parseTree);
     }
     
     

@@ -30,10 +30,10 @@ public class TreeAnnotations {
 		// order vertical markov process
 		
 		//Recurse through the tree and add "^" between 
-		System.out.println(unAnnotatedTree);
+		//System.out.println("Pre Markov :" + unAnnotatedTree);
 		addVerticalMarkovization(unAnnotatedTree);
 		//return binarizeTree(unAnnotatedTree);
-		System.out.println(unAnnotatedTree);
+		//System.out.println("Post Markov :" + unAnnotatedTree);
 		return binarizeTree(unAnnotatedTree);
 
 	}
@@ -58,14 +58,14 @@ public class TreeAnnotations {
 	//This adds the markovization to our tree
 	private static void addVerticalMarkovization (Tree<String> tree){
 		//System.out.println(tree);		
-		System.out.println("Preterms: " + tree.getPreTerminalYield());
+		//System.out.println("Preterms: " + tree.getPreTerminalYield());
 		Queue<Tree<String>> treeQueue = new LinkedBlockingQueue<Tree<String>>();
 		treeQueue.add(tree);
 		while(!treeQueue.isEmpty()){
 			Tree<String> curTree = treeQueue.remove();
 			//System.out.println(curTree);
 			String tempLabel = curTree.getLabel();
-			System.out.println(tempLabel);
+			//System.out.println(tempLabel);
 			String[] parentLabels = tempLabel.split("\\^");
 
 			String parentLabel = parentLabels[0];
