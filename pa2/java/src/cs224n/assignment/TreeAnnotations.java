@@ -31,7 +31,7 @@ public class TreeAnnotations {
 		
 		//Recurse through the tree and add "^" between 
 		//System.out.println("Pre Markov :" + unAnnotatedTree);
-		addVerticalMarkovization(unAnnotatedTree);
+		//addVerticalMarkovization(unAnnotatedTree);
 		//return binarizeTree(unAnnotatedTree);
 		//System.out.println("Post Markov :" + unAnnotatedTree);
 		return binarizeTree(unAnnotatedTree);
