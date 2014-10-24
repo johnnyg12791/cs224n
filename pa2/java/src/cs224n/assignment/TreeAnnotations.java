@@ -3,6 +3,8 @@ package cs224n.assignment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import cs224n.ling.Tree;
 import cs224n.ling.Trees;
@@ -28,68 +30,56 @@ public class TreeAnnotations {
 		// order vertical markov process
 		
 		//Recurse through the tree and add "^" between 
-		//Tree<String> newTree = addVerticalMarkovization(unAnnotatedTree);
+		//System.out.println(unAnnotatedTree);
+		addVerticalMarkovization(unAnnotatedTree);
+		//return binarizeTree(unAnnotatedTree);
+		//System.out.println(unAnnotatedTree);
 		return binarizeTree(unAnnotatedTree);
-		//return binarizeTree(newTree);
 
+	}
+	
+	public static Tree<String> unMarkovTree(Tree<String> tree){
+		Queue<Tree<String>> treeQueue = new LinkedBlockingQueue<Tree<String>>();
+		treeQueue.add(tree);
+		while (!treeQueue.isEmpty()) {
+			Tree<String> curTree = treeQueue.remove();
+			List<Tree<String>> children = curTree.getChildren();
+			for (Tree<String> childTree : children) {
+				String tempLabel = childTree.getLabel();
+				String[] labels = tempLabel.split("\\^");
+				String label = labels[labels.length - 1];
+				childTree.setLabel(label);
+				treeQueue.add(childTree);
+			}
+		}
+		return tree;
 	}
 	
 	//This adds the markovization to our tree
-	/*private static Tree<String> addVerticalMarkovization (Tree<String> tree){
-		System.out.println(tree);		
+	private static void addVerticalMarkovization (Tree<String> tree){
+		//System.out.println(tree);		
 
-		List<Tree<String>> childrenTrees = tree.getChildren();
-		List<Tree<String>> markovedChildren = new ArrayList<Tree<String>>();
-		System.out.println(childrenTrees);
-		PriorityQueue<Tree<String>> treeQueue = new PriorityQueue<Tree<String>>();
-		treeQueue.add(tree, 1);
-		while(true){
-			for (Tree<String> curTree : )
-		}
-			for(Tree<String> childTree : childrenTrees){
-				String markovChildString = (childTree.getLabel() + "^" + parentLabel);
-				System.out.println(markovChildString);
-				Tree<String> newMarkovChildTree = new Tree<String>(markovChildString);
-				
-				//recursivelyAddMarkovization(newMarkovChildTree, childString);//Just want to pass in regular child
-				childTree.setLabel(label)
-			}
-		tree.setChildren(markovedChildren);
-		
-		
-		
-		//Tree<String> newTree = new Tree<String>(label);
-		//recursivelyAddMarkovization(tree, label);
-		//List<String> children = tree.getYield();
-		//String newChildrenList
-		//for(String child : children){
+		Queue<Tree<String>> treeQueue = new LinkedBlockingQueue<Tree<String>>();
+		treeQueue.add(tree);
+		while(!treeQueue.isEmpty()){
+			Tree<String> curTree = treeQueue.remove();
+			//System.out.println(curTree);
+			String tempLabel = curTree.getLabel();
+			System.out.println(tempLabel);
+			String[] parentLabels = tempLabel.split("\\^");
 			
-		//}
-		return tree;
-	}
-
-	//RECURSION!!
-	private static void recursivelyAddMarkovization(Tree<String> tree, String parentLabel){
-
-		List<Tree<String>> childrenTrees = tree.getChildren();
-		List<Tree<String>> markovedChildren = new ArrayList<Tree<String>>();
-		System.out.println(childrenTrees);
-		PriorityQueue<Tree<String>> treeQueue = new PriorityQueue<Tree<String>>();
-		while(true){
-			for(Tree<String> childTree : childrenTrees){
-				String markovChildString = (childTree.getLabel() + "^" + parentLabel);
-				System.out.println(markovChildString);
-				Tree<String> newMarkovChildTree = new Tree<String>(markovChildString);
-				
-				//recursivelyAddMarkovization(newMarkovChildTree, childString);//Just want to pass in regular child
-				childTree.setLabel(label)
+			String parentLabel = parentLabels[parentLabels.length-1];
+			//System.out.println("Parent: " + parentLabel);
+			List<Tree<String>> children = curTree.getChildren();
+			for(Tree<String> childTree : children){
+				String markovChildString = (parentLabel + "^" + childTree.getLabel());
+				//System.out.println(markovChildString);
+				childTree.setLabel(markovChildString);
+				treeQueue.add(childTree);
+				}
 			}
-		tree.setChildren(markovedChildren);
+		}
 		
-		//tree.setChildren(children);
-	}
-	*/
-	
 	private static Tree<String> binarizeTree(Tree<String> tree) {
 		String label = tree.getLabel();
 		if (tree.isLeaf())

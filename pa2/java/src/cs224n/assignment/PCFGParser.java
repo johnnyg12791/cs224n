@@ -24,9 +24,7 @@ public class PCFGParser implements Parser {
         // TODO: before you generate your grammar, the training trees
         // need to be binarized so that rules are at most binary
     	for (int i = 0; i < trainTrees.size(); i++) {
-    		//Trees.PennTreeRenderer.render(trainTrees.get(i));
     		trainTrees.set(i, TreeAnnotations.annotateTree(trainTrees.get(i)));
-    		//Trees.PennTreeRenderer.render(trainTrees.get(i));
     	}
         lexicon = new Lexicon(trainTrees);
         grammar = new Grammar(trainTrees);
@@ -162,7 +160,10 @@ public class PCFGParser implements Parser {
     	Tree<String> parseTree = new Tree<String>("ROOT");
     	//System.out.println(back2);
     	recursivelyBuildTree(parseTree, "ROOT", 0, numWords);
-    	return TreeAnnotations.unAnnotateTree(parseTree);
+    	//unmarkov
+    	printScoreMap();
+    	System.out.println(parseTree);
+    	return TreeAnnotations.unAnnotateTree(TreeAnnotations.unMarkovTree(parseTree));
     }
     
     
