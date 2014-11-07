@@ -65,7 +65,7 @@ public enum Pronoun {
   public final Speaker speaker;
   public final Type type;
   public final boolean plural;
-
+  
   private Pronoun(Gender gender, Speaker speaker, Type type, boolean plural){
     this.gender = gender;
     this.speaker = speaker;

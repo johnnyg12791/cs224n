@@ -105,9 +105,76 @@ public interface Feature {
 	  public WordsBetweenMention(int indicator) { super(indicator); }
   } // No change
   
-  public static class IsPronoun extends Indicator {
-	  public IsPronoun(boolean isPronoun){ super(isPronoun); }
+  public static class IsSameGender extends Indicator {
+	  public IsSameGender(boolean isSameGender){ super(isSameGender); }
   } // Makes it worse
+  
+  public static class NerTag1 extends StringIndicator {
+	  public NerTag1(String string) { super(string); }
+  }
+  
+  public static class GenderTag1 extends StringIndicator {
+	  public GenderTag1(String string) {super(string);}
+  }
+  public static class NerTag2 extends StringIndicator {
+	  public NerTag2(String string) { super(string); }
+  }
+  
+  public static class GenderTag2 extends StringIndicator {
+	  public GenderTag2(String string) {super(string);}
+  }
+  public static class SameNerTag extends Indicator {
+	  public SameNerTag(boolean isSameNer){ super(isSameNer); }
+  }
+  
+  public static class inSameSentence extends Indicator {
+	public inSameSentence(boolean sameSentence){ super(sameSentence); }
+  }
+  
+  public static class strictHeadMatching extends Indicator {
+	public strictHeadMatching(boolean headMatch) { super(headMatch); }  
+  }
+  
+  public static class MeAndMy extends Indicator {
+	public MeAndMy(boolean meAndMy) {super(meAndMy);}  
+  }
+  
+  public static class areBothNumbers extends Indicator{
+	  public areBothNumbers(boolean bothNumbers) {super(bothNumbers);}
+  }
+  
+  public static class partOfSpeech extends Indicator{
+	  public partOfSpeech(boolean POS) {super(POS);}
+  }
+  
+  public static class partialMatch extends Indicator{
+	  public partialMatch(boolean partialMatch) {super(partialMatch);}
+  }//makes it worse
+  
+  public static class inEntity extends Indicator{
+	  public inEntity(boolean bool) {super(bool);}
+  }
+  
+  public static class lengthDifference extends IntIndicator{
+	  public lengthDifference(int diff) {super(diff);}
+  }
+  
+  public static class lengthOfFirstMention extends IntIndicator{
+	  public lengthOfFirstMention(int len) {super(len);}
+  }
+  public static class lengthOfSecondMention extends IntIndicator{
+	  public lengthOfSecondMention(int len) {super(len);}
+  }
+  
+  public static class nameAndPronoun extends Indicator{
+	  public nameAndPronoun(boolean bothTrue) {super(bothTrue);}
+  }
+  
+  public static class bucketDistance extends BucketIndicator{
+	public bucketDistance(int value, int max, int numBuckets) {
+		super(value, max, numBuckets);
+	}
+  }
   
   /*
    * TODO: Add values to the indicators here.

@@ -1,7 +1,13 @@
 package cs224n.corefsystems;
 
 import cs224n.coref.*;
+import cs224n.coref.Feature.IsSameGender;
+import cs224n.coref.Feature.MeAndMy;
+import cs224n.coref.Feature.areBothNumbers;
+import cs224n.coref.Feature.bucketDistance;
+import cs224n.coref.Feature.nameAndPronoun;
 import cs224n.util.Pair;
+import cs224n.util.StringUtils;
 import edu.stanford.nlp.classify.LinearClassifier;
 import edu.stanford.nlp.classify.LinearClassifierFactory;
 import edu.stanford.nlp.classify.RVFDataset;
@@ -34,11 +40,24 @@ public class ClassifierBased implements CoreferenceSystem {
 			 */
 
 			Feature.ExactMatch.class,
-			Feature.WordsBetweenMention.class,
-			Feature.IsPronoun.class,
-
+			Feature.bucketDistance.class,
+			//Feature.IsSameGender.class, //doesnt do anything (or now -)
+			//Feature.NerTag1.class, //this one is -
+			Feature.NerTag2.class, // this one is +
+			Feature.SameNerTag.class,
+			Feature.inSameSentence.class,
+			Feature.strictHeadMatching.class,
+			Feature.MeAndMy.class,
+			Feature.areBothNumbers.class,
+			Feature.partOfSpeech.class,
+			//Feature.nameAndPronoun.class, //this is a -
+			//Feature.lengthDifference.class, //this is -
+			//Feature.partialMatch.class, // this is -
 			//skeleton for how to create a pair feature
-			//Pair.make(Feature.IsFeature1.class, Feature.IsFeature2.class),
+			//Pair.make(Feature.NerTag1.class, Feature.NerTag2.class),
+			//Pair.make(Feature.GenderTag1.class, Feature.GenderTag2.class),
+			//Pair.make(Feature.lengthOfFirstMention.class, Feature.lengthOfSecondMention.class),
+
 	});
 
 
@@ -56,25 +75,96 @@ public class ClassifierBased implements CoreferenceSystem {
 			Mention onPrix = input.getFirst(); //the first mention (referred to as m_i in the handout)
 			Mention candidate = input.getSecond().mention; //the second mention (referred to as m_j in the handout)
 			Entity candidateCluster = input.getSecond().entity; //the cluster containing the second mention
-
-
+			
+			/*System.out.println(onPrix.sentence + " --- " + onPrix.gloss());
+			System.out.println(candidate.sentence + " --- " + candidate.gloss());
+			//System.out.println(candidateCluster.toString());
+			System.out.println("---------------");
+			*/
 			//--Features
 			if(clazz.equals(Feature.ExactMatch.class)){
 				//(exact string match)
 				return new Feature.ExactMatch(onPrix.gloss().equals(candidate.gloss()));
 			} else if(clazz.equals(Feature.WordsBetweenMention.class)) {
-				return new Feature.WordsBetweenMention(candidate.beginIndexInclusive - onPrix.beginIndexInclusive);
-				/*
-				 * TODO: Add features to return for specific classes. Implement calculating values of features here.
-				 */
-			} else if (clazz.equals(Feature.IsPronoun.class)){
-				return new Feature.IsPronoun(Pronoun.isSomePronoun(onPrix.headWord()));
-			/*} else if (clazz.equals(Feature.---.class)){
+				return new Feature.WordsBetweenMention(candidate.headWordIndex - onPrix.headWordIndex);
 				
-			} else if (clazz.equals(Feature.---.class)){
+			} else if(clazz.equals(Feature.GenderTag1.class)){
+				return new Feature.GenderTag1(Name.mostLikelyGender(onPrix.gloss()).toString());
+			} else if(clazz.equals(Feature.GenderTag2.class)){
+				return new Feature.GenderTag2(Name.mostLikelyGender(candidate.gloss()).toString());
 				
-			} else if (clazz.equals(Feature.---.class)){
-			*/	
+				
+			} else if (clazz.equals(Feature.IsSameGender.class)){
+				if(Name.mostLikelyGender(onPrix.headWord()) == Name.mostLikelyGender(candidate.headWord())){
+					//System.out.println("Same gender : " + Name.mostLikelyGender(onPrix.headWord()));
+					//System.out.println(onPrix.headWord() + " -- " + candidate.headWord());
+					if(Name.mostLikelyGender(onPrix.headWord()) == Gender.MALE || Name.mostLikelyGender(onPrix.headWord()) == Gender.FEMALE)
+						return new Feature.IsSameGender(true);
+				}
+				return new Feature.IsSameGender(false);
+				
+			} else if (clazz.equals(Feature.NerTag1.class)){
+				return new Feature.NerTag1(onPrix.headToken().nerTag());
+			} else if (clazz.equals(Feature.NerTag2.class)){
+				return new Feature.NerTag2(candidate.headToken().nerTag());
+				
+			} else if (clazz.equals(Feature.SameNerTag.class)){
+				return new Feature.SameNerTag(onPrix.headToken().nerTag().equals(candidate.headToken().nerTag()));
+			
+			} else if (clazz.equals(Feature.inSameSentence.class)){
+				return new Feature.inSameSentence(onPrix.sentence.equals(candidate.sentence));
+				
+			} else if (clazz.equals(Feature.strictHeadMatching.class)){
+				return new Feature.strictHeadMatching(onPrix.headToken().equals(candidate.headToken()));
+			
+			} else if (clazz.equals(Feature.MeAndMy.class)){
+				String firstWords = onPrix.gloss();
+				String secondWords = candidate.gloss();
+				if(firstWords.contains("me") || firstWords.contains("my") || firstWords.contains("I")){
+					if(secondWords.contains("me") || secondWords.contains("my") || firstWords.contains("I")){
+						return new Feature.MeAndMy(true);
+					}
+				}
+				return new Feature.MeAndMy(false);
+			} else if (clazz.equals(Feature.areBothNumbers.class)){
+				if(StringUtils.isNumeric(onPrix.gloss()) && StringUtils.isNumeric(candidate.gloss())){
+					return new Feature.areBothNumbers(true);
+				}
+				return new Feature.areBothNumbers(false);
+				
+			} else if (clazz.equals(Feature.partOfSpeech.class)){
+				return new Feature.partOfSpeech(onPrix.headToken().nerTag().equals(candidate.headToken().nerTag()));
+				
+			} else if (clazz.equals(Feature.partialMatch.class)){
+				return new Feature.partialMatch(!candidate.sentence.words.contains(onPrix.gloss()));
+				
+			} else if (clazz.equals(Feature.lengthDifference.class)){
+				return new Feature.lengthDifference(onPrix.length() - candidate.length());
+				
+			} else if (clazz.equals(Feature.lengthOfFirstMention.class)){
+				return new Feature.lengthOfFirstMention(onPrix.length());
+				 
+			} else if (clazz.equals(Feature.lengthOfSecondMention.class)){
+				return new Feature.lengthOfSecondMention(onPrix.length());	
+				
+			} else if (clazz.equals(Feature.nameAndPronoun.class)){
+				if(Name.isName(onPrix.gloss()) & Pronoun.isSomePronoun(candidate.gloss())){
+					//Bad
+					return new Feature.nameAndPronoun(true);
+				} else if(Name.isName(candidate.gloss()) & Pronoun.isSomePronoun(onPrix.gloss())) {
+					//Not bad
+					return new Feature.nameAndPronoun(true);
+				} else {
+					return new Feature.nameAndPronoun(false);
+				}
+				
+			} else if (clazz.equals(Feature.bucketDistance.class)){
+				int wordsBetweenMention = Math.abs(onPrix.headWordIndex - candidate.headWordIndex);
+				if(wordsBetweenMention < 50)
+					return new Feature.bucketDistance(wordsBetweenMention, 50, 10);
+				else
+					return new Feature.bucketDistance(wordsBetweenMention, 200, 10);
+				
 			}else {
 				throw new IllegalArgumentException("Unregistered feature: " + clazz);
 			}
@@ -170,7 +260,7 @@ public class ClassifierBased implements CoreferenceSystem {
 			Feature feature = featureInfo.first();
 			Boolean label = featureInfo.second();
 			Double magnitude = featureInfo.third();
-			//log(FORCE,new DecimalFormat("0.000").format(magnitude) + " [" + label + "] " + feature);
+			log(FORCE,new DecimalFormat("0.000").format(magnitude) + " [" + label + "] " + feature);
 		}
 		end_Track("Features");
 		endTrack("Training");
