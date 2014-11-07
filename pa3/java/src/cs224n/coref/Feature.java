@@ -101,8 +101,18 @@ public interface Feature {
     public ExactMatch(boolean exactMatch){ super(exactMatch); }
   }
   
+  public static class WordsBetweenMention extends IntIndicator {
+	  public WordsBetweenMention(int indicator) { super(indicator); }
+  } // No change
+  
+  public static class IsPronoun extends Indicator {
+	  public IsPronoun(boolean isPronoun){ super(isPronoun); }
+  } // Makes it worse
+  
   /*
    * TODO: Add values to the indicators here.
    */
+  
+  
 
 }
