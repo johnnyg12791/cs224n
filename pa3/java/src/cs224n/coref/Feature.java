@@ -166,6 +166,15 @@ public interface Feature {
 	  public lengthOfSecondMention(int len) {super(len);}
   }
   
+  public static class nameAndPronoun extends Indicator{
+	  public nameAndPronoun(boolean bothTrue) {super(bothTrue);}
+  }
+  
+  public static class bucketDistance extends BucketIndicator{
+	public bucketDistance(int value, int max, int numBuckets) {
+		super(value, max, numBuckets);
+	}
+  }
   
   /*
    * TODO: Add values to the indicators here.
