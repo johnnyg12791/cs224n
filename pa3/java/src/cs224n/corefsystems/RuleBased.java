@@ -29,7 +29,7 @@ public class RuleBased implements CoreferenceSystem {
 		      //--Iterate Over Coreferent Mention Pairs
 		      for(Entity e : clusters){
 		        for(Pair<Mention, Mention> mentionPair : e.orderedMentionPairs()){
-		        	headWordMatches.incrementCount(mentionPair.getFirst().headWord(), mentionPair.getSecond(), 1.0);
+		        	//headWordMatches.incrementCount(mentionPair.getFirst().headWord(), mentionPair.getSecond(), 1.0);
 //		          System.out.println(""+mentionPair.getFirst() + " and " + mentionPair.getSecond() + " are coreferent");
 		        }
 		      }
@@ -39,51 +39,40 @@ public class RuleBased implements CoreferenceSystem {
 
 	@Override
 	public List<ClusteredMention> runCoreference(Document doc) {
-		//System.out.println(headWordMatches);
 		//First run an exact match
-		List<ClusteredMention> mentions = new ArrayList<ClusteredMention>();
-		Map<String,Entity> clusters = new HashMap<String,Entity>();
+		Map<Integer, Integer> ourMentionMap = new HashMap<Integer, Integer>(); 
+		Map<String, Integer> exactMatch = new HashMap<String, Integer>();
+		
 		//(for each mention...)
-		for(Mention m : doc.getMentions()){
+		for(int i = 0; i < doc.getMentions().size(); i++){
+			Mention m = doc.getMentions().get(i);
 			String mentionString = m.gloss();
-			//(...if we've seen this text before...)
-			if(clusters.containsKey(mentionString)){
-				//(...add it to the cluster)
-				//System.out.println(m.sentence);
-				//System.out.println(m + " : " + mentionString);
-				mentions.add(m.markCoreferent(clusters.get(mentionString)));
+			if(exactMatch.containsKey(mentionString)){
+				ourMentionMap.put(i, exactMatch.get(mentionString));
 			} else {
-				//It's not an exact match, so what do we do now
-				//Look at what the head of this mention mapped to in our training examples
-				Set<Mention> previousCorefMentions = headWordMatches.getCounter(m.headWord()).keySet();
-				for(Mention curMention : previousCorefMentions){
-					System.out.println(curMention.gloss());
-					//if our curMention is in the doc.getMentions, mark it coref with what
-					System.out.println("");
-					
-					
-					if(doc.getMentions().contains(curMention)){
-						System.out.println("Want to mark: " + curMention.gloss() + " and " + mentionString);
-						//mentions.add(m.markCoreferent(otherMention));
-					}
-				}
-				
-				//(...else create a new singleton cluster)
-				ClusteredMention newCluster = m.markSingleton();
-				mentions.add(newCluster);
-				clusters.put(mentionString,newCluster.entity);
+				ourMentionMap.put(i, -1);
+				exactMatch.put(mentionString, i);
 			}
-		
-		//Then we run a less exact match, with he/his/him and she/her/hers
-		/*for(Mention m : doc.getMentions()){
-			String mentionString = m.gloss();
-			
-		}*/
-		}
-		for(Mention m : doc.getMentions()){
-			
 		}
 		
+		
+		//This is the merge, should come at the very end
+		List<ClusteredMention> mentions = new ArrayList<ClusteredMention>();
+		for(int i = 0; i < doc.getMentions().size(); i++){
+			Mention m = doc.getMentions().get(i);
+			//If it's not associated with anything, mark it as a singleton 
+			if(ourMentionMap.get(i) == -1){
+				mentions.add(m.markSingleton());
+			}else{
+				//If it is associated with something, find the index
+				int coref = ourMentionMap.get(i);
+				ClusteredMention prevCluster = mentions.get(coref);
+				mentions.add(m.markCoreferent(prevCluster));
+			}
+		}
+		
+		System.out.println(ourMentionMap);
+		System.out.println(exactMatch);
 		return mentions;
 	}
 }
