@@ -131,10 +131,6 @@ public interface Feature {
 	public inSameSentence(boolean sameSentence){ super(sameSentence); }
   }
   
-  public static class strictHeadMatching extends Indicator {
-	public strictHeadMatching(boolean headMatch) { super(headMatch); }  
-  }
-  
   public static class MeAndMy extends Indicator {
 	public MeAndMy(boolean meAndMy) {super(meAndMy);}  
   }
@@ -174,6 +170,34 @@ public interface Feature {
 	public bucketDistance(int value, int max, int numBuckets) {
 		super(value, max, numBuckets);
 	}
+  }
+  public static class bucketLengthDiff extends BucketIndicator{
+	public bucketLengthDiff(int value, int max, int numBuckets) {
+		super(value, max, numBuckets);
+	}
+  }
+  
+  public static class firstWordInSecondCluster extends Indicator{
+	  public firstWordInSecondCluster(boolean value) {super(value);}
+  }
+  
+  public static class PluralityMatch extends Indicator{
+	  public PluralityMatch(boolean match) {super(match);}
+  }
+  
+  public static class headMatch extends Indicator{
+	  public headMatch(boolean match) {super(match);}
+  }
+  
+  public static class POS1 extends StringIndicator{
+	  public POS1(String pos) {super(pos);}
+  }
+  public static class POS2 extends StringIndicator{
+	  public POS2(String pos) {super(pos);}
+  }
+  
+  public static class LemmaMatch extends Indicator{
+	  public LemmaMatch(boolean match) {super(match);}
   }
   
   /*

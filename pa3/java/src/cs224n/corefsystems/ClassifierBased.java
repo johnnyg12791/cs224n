@@ -3,6 +3,7 @@ package cs224n.corefsystems;
 import cs224n.coref.*;
 import cs224n.coref.Feature.IsSameGender;
 import cs224n.coref.Feature.MeAndMy;
+import cs224n.coref.Feature.PluralityMatch;
 import cs224n.coref.Feature.areBothNumbers;
 import cs224n.coref.Feature.bucketDistance;
 import cs224n.coref.Feature.nameAndPronoun;
@@ -40,22 +41,25 @@ public class ClassifierBased implements CoreferenceSystem {
 			 */
 
 			Feature.ExactMatch.class,
-			Feature.bucketDistance.class,
+			Feature.LemmaMatch.class,
+			//Feature.bucketDistance.class, // this is a -
 			//Feature.IsSameGender.class, //doesnt do anything (or now -)
 			//Feature.NerTag1.class, //this one is -
-			Feature.NerTag2.class, // this one is +
-			Feature.SameNerTag.class,
+			//Feature.NerTag2.class, // this one is +
+			//Feature.SameNerTag.class,
 			Feature.inSameSentence.class,
-			Feature.strictHeadMatching.class,
-			Feature.MeAndMy.class,
-			Feature.areBothNumbers.class,
-			Feature.partOfSpeech.class,
+			//Feature.areBothNumbers.class,
+			Feature.headMatch.class, //Woah this is awesome +++
+			//Feature.firstWordInSecondCluster.class, //as is this one!
+			//Feature.PluralityMatch.class, //Error with this call
 			//Feature.nameAndPronoun.class, //this is a -
 			//Feature.lengthDifference.class, //this is -
 			//Feature.partialMatch.class, // this is -
+			//Feature.bucketLengthDiff.class,
 			//skeleton for how to create a pair feature
-			//Pair.make(Feature.NerTag1.class, Feature.NerTag2.class),
-			//Pair.make(Feature.GenderTag1.class, Feature.GenderTag2.class),
+			//Pair.make(Feature.NerTag1.class, Feature.NerTag2.class), //negative
+			Pair.make(Feature.GenderTag1.class, Feature.GenderTag2.class),
+			//Pair.make(Feature.POS1.class, Feature.POS2.class),
 			//Pair.make(Feature.lengthOfFirstMention.class, Feature.lengthOfSecondMention.class),
 
 	});
@@ -83,21 +87,19 @@ public class ClassifierBased implements CoreferenceSystem {
 			*/
 			//--Features
 			if(clazz.equals(Feature.ExactMatch.class)){
-				//(exact string match)
 				return new Feature.ExactMatch(onPrix.gloss().equals(candidate.gloss()));
+	
 			} else if(clazz.equals(Feature.WordsBetweenMention.class)) {
-				return new Feature.WordsBetweenMention(candidate.headWordIndex - onPrix.headWordIndex);
+				return new Feature.WordsBetweenMention(Math.abs(candidate.headWordIndex - onPrix.headWordIndex));
 				
 			} else if(clazz.equals(Feature.GenderTag1.class)){
 				return new Feature.GenderTag1(Name.mostLikelyGender(onPrix.gloss()).toString());
 			} else if(clazz.equals(Feature.GenderTag2.class)){
 				return new Feature.GenderTag2(Name.mostLikelyGender(candidate.gloss()).toString());
 				
-				
+			
 			} else if (clazz.equals(Feature.IsSameGender.class)){
 				if(Name.mostLikelyGender(onPrix.headWord()) == Name.mostLikelyGender(candidate.headWord())){
-					//System.out.println("Same gender : " + Name.mostLikelyGender(onPrix.headWord()));
-					//System.out.println(onPrix.headWord() + " -- " + candidate.headWord());
 					if(Name.mostLikelyGender(onPrix.headWord()) == Gender.MALE || Name.mostLikelyGender(onPrix.headWord()) == Gender.FEMALE)
 						return new Feature.IsSameGender(true);
 				}
@@ -109,34 +111,21 @@ public class ClassifierBased implements CoreferenceSystem {
 				return new Feature.NerTag2(candidate.headToken().nerTag());
 				
 			} else if (clazz.equals(Feature.SameNerTag.class)){
-				return new Feature.SameNerTag(onPrix.headToken().nerTag().equals(candidate.headToken().nerTag()));
-			
+				if(!onPrix.headToken().nerTag().equals("O"))
+					return new Feature.SameNerTag(onPrix.headToken().nerTag().equals(candidate.headToken().nerTag()));
+				return new Feature.SameNerTag(false);
+
 			} else if (clazz.equals(Feature.inSameSentence.class)){
 				return new Feature.inSameSentence(onPrix.sentence.equals(candidate.sentence));
 				
-			} else if (clazz.equals(Feature.strictHeadMatching.class)){
-				return new Feature.strictHeadMatching(onPrix.headToken().equals(candidate.headToken()));
-			
-			} else if (clazz.equals(Feature.MeAndMy.class)){
-				String firstWords = onPrix.gloss();
-				String secondWords = candidate.gloss();
-				if(firstWords.contains("me") || firstWords.contains("my") || firstWords.contains("I")){
-					if(secondWords.contains("me") || secondWords.contains("my") || firstWords.contains("I")){
-						return new Feature.MeAndMy(true);
-					}
-				}
-				return new Feature.MeAndMy(false);
 			} else if (clazz.equals(Feature.areBothNumbers.class)){
-				if(StringUtils.isNumeric(onPrix.gloss()) && StringUtils.isNumeric(candidate.gloss())){
+				if(StringUtils.isNumeric(onPrix.headWord()) && StringUtils.isNumeric(candidate.headWord())){
 					return new Feature.areBothNumbers(true);
 				}
 				return new Feature.areBothNumbers(false);
-				
-			} else if (clazz.equals(Feature.partOfSpeech.class)){
-				return new Feature.partOfSpeech(onPrix.headToken().nerTag().equals(candidate.headToken().nerTag()));
-				
+
 			} else if (clazz.equals(Feature.partialMatch.class)){
-				return new Feature.partialMatch(!candidate.sentence.words.contains(onPrix.gloss()));
+				return new Feature.partialMatch(candidate.sentence.words.contains(onPrix.headWord()));
 				
 			} else if (clazz.equals(Feature.lengthDifference.class)){
 				return new Feature.lengthDifference(onPrix.length() - candidate.length());
@@ -145,15 +134,21 @@ public class ClassifierBased implements CoreferenceSystem {
 				return new Feature.lengthOfFirstMention(onPrix.length());
 				 
 			} else if (clazz.equals(Feature.lengthOfSecondMention.class)){
-				return new Feature.lengthOfSecondMention(onPrix.length());	
+				return new Feature.lengthOfSecondMention(candidate.length());	
+				
+			} else if (clazz.equals(Feature.bucketLengthDiff.class)){
+				int lengthDiff = Math.abs(onPrix.length() - candidate.length());
+				return new Feature.bucketLengthDiff(lengthDiff, 50, 10);
 				
 			} else if (clazz.equals(Feature.nameAndPronoun.class)){
-				if(Name.isName(onPrix.gloss()) & Pronoun.isSomePronoun(candidate.gloss())){
-					//Bad
-					return new Feature.nameAndPronoun(true);
-				} else if(Name.isName(candidate.gloss()) & Pronoun.isSomePronoun(onPrix.gloss())) {
-					//Not bad
-					return new Feature.nameAndPronoun(true);
+				if(onPrix.sentence.equals(candidate.sentence)){
+					if(Name.isName(onPrix.gloss()) && Pronoun.isSomePronoun(candidate.gloss())){
+						return new Feature.nameAndPronoun(true);
+					} else if(Name.isName(candidate.gloss()) && Pronoun.isSomePronoun(onPrix.gloss())) {
+						return new Feature.nameAndPronoun(true);
+					} else {
+						return new Feature.nameAndPronoun(false);
+					}
 				} else {
 					return new Feature.nameAndPronoun(false);
 				}
@@ -161,10 +156,39 @@ public class ClassifierBased implements CoreferenceSystem {
 			} else if (clazz.equals(Feature.bucketDistance.class)){
 				int wordsBetweenMention = Math.abs(onPrix.headWordIndex - candidate.headWordIndex);
 				if(wordsBetweenMention < 50)
-					return new Feature.bucketDistance(wordsBetweenMention, 50, 10);
+					return new Feature.bucketDistance(wordsBetweenMention, 55, 11);
 				else
-					return new Feature.bucketDistance(wordsBetweenMention, 200, 10);
+					return new Feature.bucketDistance(199, 200, 11);
 				
+			} else if (clazz.equals(Feature.headMatch.class)){
+				return new Feature.headMatch(onPrix.headWord().equals(candidate.headWord()));
+
+			} else if (clazz.equals(Feature.firstWordInSecondCluster.class)){
+				Set<String> clusterHeadWords = new HashSet<String>();
+				for(Mention m : candidateCluster.mentions){
+					clusterHeadWords.add(m.headWord());
+				}
+				return new Feature.firstWordInSecondCluster(clusterHeadWords.contains(onPrix.headWord()));
+
+			} else if (clazz.equals(Feature.PluralityMatch.class)){
+				if(Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null){
+					//System.out.println(Pronoun.valueOf(onPrix.headWord()).plural);
+					boolean isPlural1 = Pronoun.valueOrNull(onPrix.headWord()).plural;
+					boolean isPlural2 = Pronoun.valueOrNull(candidate.headWord()).plural;
+					//System.out.println(onPrix.sentence + " -- " + candidate.sentence);
+					//System.out.println(onPrix.gloss() + " -- " + candidate.gloss());
+					return new Feature.PluralityMatch(isPlural1 && isPlural2);
+				}
+				return new Feature.PluralityMatch(false);
+				
+			} else if (clazz.equals(Feature.POS1.class)){
+				return new Feature.POS1(onPrix.headToken().posTag());
+			} else if (clazz.equals(Feature.POS2.class)){
+				return new Feature.POS2(onPrix.headToken().posTag());
+				
+			} else if (clazz.equals(Feature.LemmaMatch.class)){
+				return new Feature.LemmaMatch(onPrix.headToken().lemma().equals(candidate.headToken().lemma()));		
+
 			}else {
 				throw new IllegalArgumentException("Unregistered feature: " + clazz);
 			}
