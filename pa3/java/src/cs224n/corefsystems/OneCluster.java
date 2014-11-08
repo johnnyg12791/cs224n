@@ -47,7 +47,7 @@ public class OneCluster implements CoreferenceSystem {
 			ClusteredMention tempCluster = mention.markCoreferent(entity);
 			allMentionsCluster.add(tempCluster);
 		}
-		System.out.println(allMentionsCluster);
+		//System.out.println(allMentionsCluster);
 		return allMentionsCluster;
 	}
 

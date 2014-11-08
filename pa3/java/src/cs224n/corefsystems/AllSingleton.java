@@ -20,17 +20,17 @@ public class AllSingleton implements CoreferenceSystem {
 			List<Entity> clusters = pair.getSecond();
 			List<Mention> mentions = doc.getMentions();
 			//--Print the Document
-			System.out.println("Clusters___________________________________");
-			System.out.println(doc.prettyPrint(clusters));
+			//System.out.println("Clusters___________________________________");
+			//System.out.println(doc.prettyPrint(clusters));
 			//--Iterate over mentions
-			System.out.println("Mentions_______________________________________________");
+			//System.out.println("Mentions_______________________________________________");
 			for(Mention m : mentions){
-				System.out.println(m);
+				//System.out.println(m);
 			}
 			//--Iterate Over Coreferent Mention Pairs
 			for(Entity e : clusters){
 				for(Pair<Mention, Mention> mentionPair : e.orderedMentionPairs()){
-					System.out.println(""+mentionPair.getFirst() + " and " + mentionPair.getSecond() + " are coreferent");
+					//System.out.println(""+mentionPair.getFirst() + " and " + mentionPair.getSecond() + " are coreferent");
 				}
 			}
 		}
