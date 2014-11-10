@@ -70,7 +70,7 @@ public class BetterBaseline implements CoreferenceSystem {
 			String headWord = m.headWord();
 			//(...if we've seen this text before...)
 			if (headMap.containsKey(headWord)) {
-				System.out.println("Head Word: " + headWord + ", Entity: " + headMap.get(headWord));
+				//System.out.println("Head Word: " + headWord + ", Entity: " + headMap.get(headWord));
 				mentions.add(m.markCoreferent(headMap.get(headWord)));
 			} else {
 				ClusteredMention newCluster = m.markSingleton();
@@ -78,7 +78,7 @@ public class BetterBaseline implements CoreferenceSystem {
 				headMap.put(headWord, newCluster.entity);
 			}
 
-			System.out.println(mentions);
+			//System.out.println(mentions);
 		}
 		//(return the mentions)
 		return mentions;

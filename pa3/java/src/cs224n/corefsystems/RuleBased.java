@@ -2,6 +2,7 @@ package cs224n.corefsystems;
 
 import java.util.*;
 import cs224n.coref.*;
+import cs224n.coref.Sentence.Token;
 import cs224n.util.CounterMap;
 import cs224n.util.Pair;
 
@@ -56,6 +57,7 @@ public class RuleBased implements CoreferenceSystem {
 				exactMatch.put(mentionString, i);
 			}
 		}
+
 		
 		/*
 		 * Second pass: exact head word match
@@ -87,17 +89,39 @@ public class RuleBased implements CoreferenceSystem {
 				lemmaMatch.put(lemmaWord, i);
 			}
 		}
+		/*
+		 * Fourth pass: pronoun resolution
+		 */
+		for (int i = 0; i < doc.getMentions().size(); i++) {
+			for (int j = i; j < doc.getMentions().size(); j++) {
+				Mention m1 = doc.getMentions().get(i);
+				Mention m2 = doc.getMentions().get(j);
+				if (m1.sentence == m2.sentence) {
+					//System.out.println("mentions are in same sentence!");
+					String headWord1 = m1.headWord();
+					String headWord2 = m2.headWord();
+					//Token headToken1 = m1.headToken();
+					//Token headToken2 = m2.headToken();
+					if (Name.gender(headWord1) == Name.gender(headWord2)) {
+						if (!Pronoun.isSomePronoun(headWord1) && Pronoun.isSomePronoun(headWord2)) {
+							ourMentionMap.put(j, i);
+						}
+					}
+				}
+			}
+		}
 		
 		/*
-		 * Forth pass: headword substring
+		 * Fifth pass: headword substring
 		 */
 		Map<String, Integer> substringMatch = new HashMap<String, Integer>();
 		for (int i = 0; i < doc.getMentions().size(); i++) {
 			Mention m = doc.getMentions().get(i);
 			String headWord = m.headWord();
+			//System.out.println("mention: " + m + ", headword: " + headWord);
 			boolean addedToMap = false;
 			for (String str : substringMatch.keySet()) {
-				if (str.length() > 4 && headWord.length() > 4) {
+				if (str.length() > 3 && headWord.length() > 3) {
 					if (str.contains(headWord)) {
 						ourMentionMap.put(i, substringMatch.get(str));
 						addedToMap = true;
@@ -112,34 +136,27 @@ public class RuleBased implements CoreferenceSystem {
 				substringMatch.put(headWord, i);
 			}
 		}
-		
+				
 		/*
-		 * Fifth pass: I, me, my, myself, mine etc
+		 * Sixth passes: I, me, my, myself, mine etc
 		 */
 		Set<String> meMySet = new HashSet<String>(Arrays.asList("i", "me", "my", "myself", "mine"));
 		checkSimilarThings(meMySet, "i", doc, ourMentionMap);
 		
-		/*
-		 * Sixth pass: us, we, our, ours, ourselves
-		 */
-		Set<String> usWeSet = new HashSet<String>(Arrays.asList("we", "our", "ours", "ourselves"));
+		Set<String> usWeSet = new HashSet<String>(Arrays.asList("we", "us", "our", "ours", "ourself", "ourselves"));
 		checkSimilarThings(usWeSet, "we", doc, ourMentionMap);
 		
+		Set<String> youSet = new HashSet<String>(Arrays.asList("you", "your", "yours", "yourself", "yourselves"));
+		checkSimilarThings(youSet, "you", doc, ourMentionMap);
 		
-//		Map<String, Integer> meMyMatch = new HashMap<String, Integer>();
-//		for (int i = 0; i < doc.getMentions().size(); i++) {
-//			Mention m = doc.getMentions().get(i);
-//			String headWord = m.headToken().lemma().toLowerCase();
-//			if (meMySet.contains(headWord)) {
-//				System.out.println("We found a meMy word");
-//				if (meMyMatch.containsKey("i")) {
-//					ourMentionMap.put(i, meMyMatch.get("i"));
-//					System.out.println("MEMYMATCH");
-//				} else {
-//					meMyMatch.put("i", i);
-//				}
-//			}
-//		}
+		Set<String> heSet = new HashSet<String>(Arrays.asList("he", "him", "his", "himself"));
+		checkSimilarThings(heSet, "he", doc, ourMentionMap);
+		
+		Set<String> sheSet = new HashSet<String>(Arrays.asList("she", "her", "hers", "herself"));
+		checkSimilarThings(sheSet, "she", doc, ourMentionMap);
+				
+		Set<String> theySet = new HashSet<String>(Arrays.asList("they", "them", "themselves", "theirselves"));
+		checkSimilarThings(theySet, "they", doc, ourMentionMap);
 		
 		//This is the merge, should come at the very end
 		List<ClusteredMention> mentions = new ArrayList<ClusteredMention>();
@@ -155,10 +172,18 @@ public class RuleBased implements CoreferenceSystem {
 				mentions.add(m.markCoreferent(prevCluster));
 			}
 		}
-		
-		//System.out.println(ourMentionMap);
-		//System.out.println(exactMatch);
-		//System.out.println(substringMatch);
+//		System.out.println(mentions);
+//		System.out.println("------------------------------------------------------------------------------------\n");
+//		
+//		for (Sentence s : doc.sentences) {
+//			System.out.print(s);
+//		}
+//		System.out.println("\n");
+//		System.out.println(ourMentionMap + "\n");
+//		for (ClusteredMention c : mentions) {
+//			System.out.println(c + " " + c.mention.headWord());
+//		}
+//		System.out.println("\n");
 		return mentions;
 	}
 	
