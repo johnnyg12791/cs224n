@@ -58,7 +58,7 @@ public class WindowModel {
 		try {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(Datum datum : testData){
-				f0.write(datum.word + " " + datum.label + " ");
+				f0.write(datum.word + "\t" + datum.label + "\t");
 				if(exactMatchMap.containsKey(datum.word)){
 					f0.write(exactMatchMap.get(datum.word));
 				} else { 
