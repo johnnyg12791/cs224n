@@ -47,7 +47,8 @@ public class WindowModel {
 			exactMatchMap.put(datum.word, datum.label);
 		}
 		//End of baseline function
-		//	TODO
+		
+		//	TODO Feedforward function
 	}
 
 	
@@ -63,6 +64,7 @@ public class WindowModel {
 				} else { 
 					f0.write("O");
 				}
+				f0.write("\n");
 			}
 			f0.close();
 		} catch (IOException e) {
