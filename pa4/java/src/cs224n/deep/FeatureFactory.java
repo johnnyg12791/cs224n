@@ -60,7 +60,7 @@ public class FeatureFactory {
 	public static SimpleMatrix readWordVectors(String vecFilename) throws IOException {
 		ArrayList<ArrayList<Double>> arrayListMatrix = new ArrayList<ArrayList<Double>>();
 
-		//TODO Written by John, NEEDS TO BE TESTED TODO
+		//TODO Written by John, should probably be TESTED
 		File vecFile = new File(vecFilename);
 		try {
 			Scanner fileScanner = new Scanner(vecFile);
@@ -88,8 +88,6 @@ public class FeatureFactory {
 			}
 		}
 		
-		//allVecs = new SimpleMatrix(matrix);
-		
 		if (allVecs!=null) return allVecs;
 		return null;
 	}
@@ -100,7 +98,6 @@ public class FeatureFactory {
 
 	public static HashMap<String, Integer> initializeVocab(String vocabFilename) throws IOException {
 		//Created by John, it reads in the vocab file and sets up the 2 maps from above
-		//TODO: Has not been tested
 		BufferedReader reader = new BufferedReader(new FileReader(vocabFilename));
 		String line = null;
 		int index = 0;
@@ -110,10 +107,8 @@ public class FeatureFactory {
 				wordToNum.put(word, index);
 				numToWord.put(index, word);
 			}
-			
 		index++;
 		}
-
 		return wordToNum;
 	}
  
