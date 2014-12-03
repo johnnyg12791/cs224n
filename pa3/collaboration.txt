@@ -1,0 +1,6 @@
+Team members:
+
+John Gold	johngold
+Justin Salloum	jsalloum
+
+We worked on the naive models together, John focused on the Classifier-based model and Justin focused on the Rule-based model. Both members worked on the writeup.
