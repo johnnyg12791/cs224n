@@ -17,6 +17,9 @@ public class WindowModel {
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap ;
+	private static final double ALPHA = 0.001;
+	
+	//private int 
 	
 	public static String OUTPUT_FILENAME = "example1.out";
 	//Initial defaults are: (5, 100,0.001)
@@ -64,9 +67,12 @@ public class WindowModel {
 		
 		//End of baseline function
 		
+		
+	// JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------------
+		runSGD(_trainData);
+	// END OF JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------
+		
 		//	TODO Feedforward function
-		
-		
 	}
 	
 	
@@ -75,7 +81,7 @@ public class WindowModel {
 	 * It is a simple matrix with the same dimentions as U: k x H
 	 * In our project, k is 5 and H is 100
 	 */
-	private SimpleMatrix gradientU(List<Datum> trainData, int pos) {
+	private SimpleMatrix gradientU(int pos, List<Datum> trainingData) {
 		// Get h: Hx1 (column vector)
 		// Get hT (1xH)
 		// Get (p - y) (5x1)
@@ -89,7 +95,7 @@ public class WindowModel {
 	 * It returns a simple matrix with the same dimensions as b1: k x 1
 	 * In our project, k is 5.
 	 */
-	private SimpleMatrix gradientB2(List<Datum> trainData, int pos) {
+	private SimpleMatrix gradientB2(int pos, List<Datum> trainingData) {
 		// Get y
 		// Get p (5x1)
 		// Return 1/m * (p - y)
@@ -100,7 +106,7 @@ public class WindowModel {
 	/*
 	 * 
 	 */
-	private SimpleMatrix gradientW(List<Datum> trainData, int pos) {
+	private SimpleMatrix gradientW(int pos, List<Datum> trainingData) {
 		// Get UT
 		// Get xT
 		// Get y
@@ -114,7 +120,7 @@ public class WindowModel {
 		return null;
 	}
 	
-	private SimpleMatrix gradientB1(List<Datum> trainData, int pos) {
+	private SimpleMatrix gradientB1(int pos, List<Datum> trainingData) {
 		// Get UT
 		// Get z
 		// For each position make 1 - tanh^2(zi)
@@ -124,10 +130,52 @@ public class WindowModel {
 		return null;
 	}
 	
-	private SimpleMatrix gradientL(List<Datum> trainData, int pos) {
+	private SimpleMatrix gradientL(int pos, List<Datum> trainingData) {
 		return null;
 	}
 
+	// JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------------
+	
+	/*
+	 * Run stochastic gradient descent
+	 */
+	private void runSGD(List<Datum> _trainingData) {
+		int m = _trainingData.size();
+		for (int i = 1; i <= m; i++) {
+			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
+			SimpleMatrix gradientU = gradientU(i, _trainingData);
+			updateMatrix(U, gradientU);
+			
+			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
+			SimpleMatrix gradientB2 = gradientB2(i, _trainingData);
+			updateMatrix(B2, gradientB2);
+			
+			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
+			SimpleMatrix gradientW = gradientW(i, _trainingData);
+			updateMatrix(W, gradientW);
+			
+			// 4. b(1)(t) = b(1)(t-1) - alpha*d/db Ji(b(1))
+			SimpleMatrix gradientB1 = gradientB1(i, _trainingData);
+			updateMatrix(B1, gradientB1);
+			
+			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
+			SimpleMatrix gradientL = gradientL(i, _trainingData);
+			updateMatrix(L, gradientL);
+		}
+	}
+	
+	/*
+	 * Helper function for runSGD. Updates the specified matrix using 
+	 * its current state and the gradient matrix.
+	 */
+	private void updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
+		for (int row = 0; row < m.numRows(); row++) {
+			for (int col = 0; col < m.numCols(); col++) {
+				m.set(row, col, m.get(row, col) - ALPHA * gradient_m.get(row, col));
+			}
+		}
+	}
+	// END OF JUSTIN'S AWESOME STUFF -----------------------------------------------------------------------------------
 	
 	public void test(List<Datum> testData){
 		//Baseline function
