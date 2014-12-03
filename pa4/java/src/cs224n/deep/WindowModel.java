@@ -12,13 +12,22 @@ import java.text.*;
 
 public class WindowModel {
 
-	protected SimpleMatrix L, W, U, b1, b2;
+	protected SimpleMatrix L, W, U, B1, B2;
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
-	public HashMap<String, String> unambiguousMatchMap;
+	public HashMap<String, String> unambiguousMatchMap ;
+	private Map<String, Integer> labelMap = new HashMap<String, Integer>() {
+		{
+			put("O", 0);
+			put("LOC", 1);
+			put("MISC", 2);
+			put("ORG", 3);
+			put("PER", 4);
+		}
+	};
 	private final static int K = 5;
 	private SimpleMatrix lookupTable;
-	private double alpha = 0.001;
+	private double alpha;
 	
 	
 	public static String OUTPUT_FILENAME = "example1.out";
@@ -47,13 +56,13 @@ public class WindowModel {
 		U = SimpleMatrix.random(K, hiddenSize, -eInit, eInit, rand);//K x H
 		
 		//Init biases to 0
-		b1 = new SimpleMatrix(hiddenSize, 1); //H x 1
+		B1 = new SimpleMatrix(hiddenSize, 1); //H x 1
 		for(int i = 0; i < hiddenSize; i++){
-			b1.set(i, 0, 0.0);
+			B1.set(i, 0, 0.0);
 		}
-		b2 = new SimpleMatrix(K, 1); //K x 1 (or 1 x K?)
+		B2 = new SimpleMatrix(K, 1); //K x 1 (or 1 x K?)
 		for(int i = 0; i < K; i++){
-			b2.set(i, 0, 0.0);
+			B2.set(i, 0, 0.0);
 		}
 	}
 
@@ -112,7 +121,7 @@ public class WindowModel {
 	//This gets matrix H by taking Ut*A + b2
 	private SimpleMatrix getMatrixH(int i, List<Datum> trainData){
 		SimpleMatrix A = getMatrixA(i, trainData);
-		SimpleMatrix H = U.mult(A).plus(b2); //The sizes should work out correctly, but untested
+		SimpleMatrix H = U.mult(A).plus(B2); //The sizes should work out correctly, but untested
 		return H;
 	}
 	
@@ -120,7 +129,7 @@ public class WindowModel {
 	//Gets matrix Z based on i
 	private SimpleMatrix getMatrixZ(int i, List<Datum> trainData){
 		SimpleMatrix Xi = getXi(i, trainData);
-		SimpleMatrix Z = W.mult(Xi).plus(b1);
+		SimpleMatrix Z = W.mult(Xi).plus(B1);
 		return Z;
 	}
 	
@@ -239,6 +248,22 @@ public class WindowModel {
 		}
 	}
 	
+	
+	
+	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
+	private double costFunction(List<Datum> _trainingData) {
+		double cost = 0;
+		int m = _trainingData.size();
+		for (int i = 0; i < m; i++) {
+			int index = labelMap.get(_trainingData.get(i).label);
+			SimpleMatrix pTheta = getPTheta(i, _trainingData);
+			
+				// add Log
+			cost += Math.log(pTheta.get(index));
+		}
+		return cost;
+	}
+	// END OF JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------
 	
 	public void test(List<Datum> testData){
 		//Baseline function
