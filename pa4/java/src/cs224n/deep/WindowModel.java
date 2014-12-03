@@ -12,7 +12,7 @@ import java.text.*;
 
 public class WindowModel {
 
-	protected SimpleMatrix L, W, U, b1, b2;
+	protected SimpleMatrix L, W, U, B1, B2;
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap;
@@ -47,13 +47,13 @@ public class WindowModel {
 		U = SimpleMatrix.random(K, hiddenSize, -eInit, eInit, rand);//K x H
 		
 		//Init biases to 0
-		b1 = new SimpleMatrix(hiddenSize, 1); //H x 1
+		B1 = new SimpleMatrix(hiddenSize, 1); //H x 1
 		for(int i = 0; i < hiddenSize; i++){
-			b1.set(i, 0, 0.0);
+			B1.set(i, 0, 0.0);
 		}
-		b2 = new SimpleMatrix(K, 1); //K x 1 (or 1 x K?)
+		B2 = new SimpleMatrix(K, 1); //K x 1 (or 1 x K?)
 		for(int i = 0; i < K; i++){
-			b2.set(i, 0, 0.0);
+			B2.set(i, 0, 0.0);
 		}
 	}
 
@@ -112,7 +112,7 @@ public class WindowModel {
 	//This gets matrix H by taking Ut*A + b2
 	private SimpleMatrix getMatrixH(int i, List<Datum> trainData){
 		SimpleMatrix A = getMatrixA(i, trainData);
-		SimpleMatrix H = U.mult(A).plus(b2); //The sizes should work out correctly, but untested
+		SimpleMatrix H = U.mult(A).plus(B2); //The sizes should work out correctly, but untested
 		return H;
 	}
 	
@@ -123,51 +123,98 @@ public class WindowModel {
 	 */
 	private SimpleMatrix gradientU(int pos, List<Datum> trainingData) {
 		// Get h: Hx1 (column vector)
+		SimpleMatrix h = getMatrixA(pos, trainingData);
 		// Get hT (1xH)
+		SimpleMatrix hT = h.transpose();
 		// Get (p - y) (5x1)
+		SimpleMatrix y = getTrueY(pos, trainingData);
+		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));		
+		SimpleMatrix difference = p.minus(y);
+
 		// Return 1/m * (p-y) * hT = 5xH 
-		return null;
+		SimpleMatrix result = difference.mult(hT);
+		
+		return result.scale(1.0/trainingData.size());
+	}
+	
+	private SimpleMatrix getTrueY(int pos, List<Datum> trainingData) {
+		Datum d = trainingData.get(pos);
+		int yIndex = labelMap.get(d.label);
+		SimpleMatrix y = new SimpleMatrix(K, 1);
+		y.set(yIndex, 0, 1);
+		return y;
 	}
 	
 	
 	/*
 	 * This function gets the gradient of b2.
-	 * It returns a simple matrix with the same dimensions as b1: k x 1
+	 * It returns a simple matrix with the same dimensions as B1: k x 1
 	 * In our project, k is 5.
 	 */
 	private SimpleMatrix gradientB2(int pos, List<Datum> trainingData) {
 		// Get y
 		// Get p (5x1)
+		// Get (p - y) (5x1)
+		SimpleMatrix y = getTrueY(pos, trainingData);
+		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));		
+		SimpleMatrix difference = p.minus(y);
+
 		// Return 1/m * (p - y)
-		return null;
+		return difference.scale(1.0/trainingData.size());
 	}
 	
 	
 	/*
-	 * 
+	 * This function returns the gradient of W.
+	 * W is a matrix with dimensions H x Cn
+	 * In our project, C = 5, H = 100 and n = 50
 	 */
 	private SimpleMatrix gradientW(int pos, List<Datum> trainingData) {
 		// Get UT
+		SimpleMatrix UT = U.transpose();
 		// Get xT
+		SimpleMatrix xT = getXi(pos, trainingData).transpose();
 		// Get y
+		SimpleMatrix y = getTrueY(pos, trainingData);
 		// Get p
-		// Compute v = UT*y*xT - UT*px*T
+		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));
+		// Compute v = UT*y*xT - UT*p*xT
+		SimpleMatrix v1 = (UT.mult(y)).mult(xT);
+		SimpleMatrix v2 = (UT.mult(p)).mult(xT);
+		
+		SimpleMatrix v = v1.minus(v2);
+		
 		// Compute z
+		SimpleMatrix z = getMatrixZ(pos, trainingData);
 		// Update each position with 1 - tanh^2(zi)
-		// For each position i
-		// Multiply zi by vi
-		// Return z
-		return null;
+		// z is a column vector
+		for(int i = 0; i < z.numRows(); i++) {
+			z.set(i, 0, 1 - Math.tanh(z.get(i, 0))*Math.tanh(z.get(i, 0)));
+		}
+		
+		// Return elementwise multiplication of z and v
+		return z.elementMult(v);
 	}
 	
 	private SimpleMatrix gradientB1(int pos, List<Datum> trainingData) {
 		// Get UT
-		// Get z
+		SimpleMatrix UT = U.transpose();
+		// Compute z
+		SimpleMatrix z = getMatrixZ(pos, trainingData);
 		// For each position make 1 - tanh^2(zi)
+		for(int i = 0; i < z.numRows(); i++) {
+			z.set(i, 0, 1 - Math.tanh(z.get(i, 0))*Math.tanh(z.get(i, 0)));
+		}
+		// Get y
+		SimpleMatrix y = getTrueY(pos, trainingData);
+		// Get p
+		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));
+		
 		// Compute x = UT(y - p)
-		// For each position i, multiply xi by zi
-		// Return zi
-		return null;
+		SimpleMatrix x = UT.mult(y.minus(p));
+		
+		// Return elementwise multiplication of z and x
+		return z.elementMult(x);
 	}
 	
 	private SimpleMatrix gradientL(int pos, List<Datum> trainingData) {
@@ -177,7 +224,7 @@ public class WindowModel {
 	//Gets matrix Z based on i
 	private SimpleMatrix getMatrixZ(int i, List<Datum> trainData){
 		SimpleMatrix Xi = getXi(i, trainData);
-		SimpleMatrix Z = W.mult(Xi).plus(b1);
+		SimpleMatrix Z = W.mult(Xi).plus(B1);
 		return Z;
 	}
 	
@@ -215,7 +262,7 @@ public class WindowModel {
 			else
 				windowNums[j-middleIndex+windowSize/2] = wordToNum.get("UUUNKKK");
 		}
-		return windowNums;	
+		return windowNums;
 	}
 	
 	
