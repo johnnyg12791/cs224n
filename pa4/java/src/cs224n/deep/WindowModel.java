@@ -43,7 +43,7 @@ public class WindowModel {
 		wordSize = 50; //As specified in the assignment handout (n)
 		exactMatchMap = new HashMap<String, String>();
 		unambiguousMatchMap = new HashMap<String, String>();
-		lookupTable = allVecs;
+		lookupTable = allVecs.transpose();
 	}
 
 	/**
@@ -93,46 +93,52 @@ public class WindowModel {
 		//runSGD(_trainData);
 
 		//	TODO Feedforward function
-		/*for(int i = 0; i < _trainData.size(); i++){
+		for(int i = 0; i < _trainData.size(); i++){
 			//SimpleMatrix Xi = getXi(i, _trainData);
 			SimpleMatrix H = getMatrixH(i, _trainData);
 			SimpleMatrix P = softMax(H);
 			System.out.println(P);
 			//TODO backprop (with SGD, so only for this window)
-		}*/
-		gradientCheck(_trainData);
+		}
 	}
 	
-	private void gradientCheck(List<Datum> _trainingData) {
+	public void gradientCheck(List<Datum> _trainingData) {
 		initWeights();
 		for(int i = 0; i < 10; i++){
-			checkGradU(i, _trainingData);
-			
-			//TODO backprop (with SGD, so only for this window)
+			System.out.println("CHECKING EXAMPLE " + i);
+			SimpleMatrix gradU = gradientU(i, _trainingData);
+			checkGrad(i, _trainingData, U, gradU, "U");
+			SimpleMatrix gradB2 = gradientB2(i, _trainingData);
+			checkGrad(i, _trainingData, B2, gradB2, "B2");
+			SimpleMatrix gradW = gradientW(i, _trainingData);
+			checkGrad(i, _trainingData, W, gradW, "W");
+			SimpleMatrix gradB1 = gradientB1(i, _trainingData);
+			checkGrad(i, _trainingData, B1, gradB1, "B1");
+			SimpleMatrix gradL = gradientL(i, _trainingData);
+			checkGrad(i, _trainingData, lookupTable, gradL, "L");
 		}	
 	}
 	
-	private void checkGradU(int i, List<Datum> _trainData) {
-		SimpleMatrix gradU = gradientU(i, _trainData);
-		for(int row = 0; row < U.numRows(); row++) {
-			for(int col = 0; col < U.numCols(); col++) {
-				U.set(row, col, U.get(row, col)+EPSILON);
+	private void checkGrad(int i, List<Datum> _trainData, SimpleMatrix M, SimpleMatrix gradM, String label) {
+		for(int row = 0; row < M.numRows(); row++) {
+			for(int col = 0; col < M.numCols(); col++) {
+				M.set(row, col, M.get(row, col)+EPSILON);
 				double cost1 = costFunction(_trainData, i);
-				U.set(row, col, U.get(row, col)-2*EPSILON);
+				M.set(row, col, M.get(row, col)-2*EPSILON);
 				double cost2 = costFunction(_trainData, i);
 				// Readjust our instance variable back to original
-				U.set(row, col, U.get(row, col)+EPSILON);
+				M.set(row, col, M.get(row, col)+EPSILON);
 				
-				System.out.println("The known estimate: " + (cost1-cost2)/(2*EPSILON));
-				System.out.println("Our computed gradient: " + gradU.get(row, col));
-				if((gradU.get(row, col) - (cost1-cost2)/(2*EPSILON) > THRESHOLD) || 
-						(gradU.get(row, col) - (cost1-cost2)/(2*EPSILON) < -1* THRESHOLD)) {
-					System.err.println("OOPS!");
-				} else {
-					System.out.println("Success!");
+				if((gradM.get(row, col) - (cost1-cost2)/(2*EPSILON) > THRESHOLD) || 
+						(gradM.get(row, col) - (cost1-cost2)/(2*EPSILON) < -1* THRESHOLD)) {
+					System.out.println("OOPS!  Computed " + gradM.get(row, col) + " at position "
+							+ "(" + row + ", " + col + ") in matrix " + label);
+					System.out.println("Expected " + (cost1-cost2)/(2*EPSILON));
 				}
 			}
 		}
+		System.out.println("Finished checking matrix " + label + ".");
+		System.out.println("If you don't see any errors, that's a success!");
 		
 	}
 	
@@ -176,7 +182,7 @@ public class WindowModel {
 		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));		
 		SimpleMatrix difference = p.minus(y);
 
-		// Return 1/m * (p-y) * hT = 5xH 
+		// Return (p-y) * hT = 5xH 
 		SimpleMatrix result = difference.mult(hT);
 		
 		return result.scale(-1); //.scale(1.0/trainingData.size());
@@ -204,8 +210,8 @@ public class WindowModel {
 		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));		
 		SimpleMatrix difference = p.minus(y);
 
-		// Return 1/m * (p - y)
-		return difference; //.scale(1.0/trainingData.size());
+		// Return (p - y)
+		return difference.scale(-1); 
 	}
 	
 	
@@ -238,7 +244,13 @@ public class WindowModel {
 		}
 		
 		// Return elementwise multiplication of z and v
-		return z.elementMult(v);
+		for(int col = 0; col < v.numCols(); col++) {
+			for(int row = 0; row < v.numRows(); row++) {
+				v.set(row, col, v.get(row, col) * z.get(row, 0));
+			}
+		}
+		
+		return v;
 	}
 	
 	private SimpleMatrix gradientB1(int pos, List<Datum> trainingData) {
@@ -290,8 +302,8 @@ public class WindowModel {
 		for(int row = 0; row < gradL.numRows(); row++) {
 			SimpleMatrix W = getPortionOfW(posInWindow, row);
 			double result = rowFactor.mult(W).get(0, 0);
-			gradL.setColumn(row, col, result);
-		}		
+			gradL.set(row, col, result + gradL.get(row, col));
+		}
 	}
 	
 	private SimpleMatrix getPortionOfW(int posInWindow, int row) {
@@ -315,7 +327,7 @@ public class WindowModel {
 		SimpleMatrix A = new SimpleMatrix(Z.numRows(), Z.numCols());
 		for(int row = 0; row < Z.numRows(); row++){
 			for(int col = 0; col < Z.numCols(); col++){
-				A.set(Math.tanh(Z.get(row, col)));
+				A.set(row, col, Math.tanh(Z.get(row, col)));
 			}
 		}
 		return A;
@@ -353,7 +365,7 @@ public class WindowModel {
 		SimpleMatrix Xi = new SimpleMatrix(windowSize * wordSize, 1);
 		for(int i = 0; i < windowNums.length; i++){
 			for(int j = 0; j < wordSize; j++){
-				Xi.set(i*wordSize + j, 0, lookupTable.get(windowNums[i], j));//I think this is correct
+				Xi.set(i*wordSize + j, 0, lookupTable.get(j, windowNums[i]));//I think this is correct
 			}
 		}
 		return Xi;
