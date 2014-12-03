@@ -352,7 +352,7 @@ public class WindowModel {
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
 			SimpleMatrix gradientL = gradientL(i, _trainingData);
-			updateMatrix(L, gradientL);
+			updateMatrix(lookupTable, gradientL);
 		}
 	}
 	
