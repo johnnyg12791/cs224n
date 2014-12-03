@@ -15,10 +15,19 @@ public class WindowModel {
 	protected SimpleMatrix L, W, U, B1, B2;
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
-	public HashMap<String, String> unambiguousMatchMap;
+	public HashMap<String, String> unambiguousMatchMap ;
+	private Map<String, Integer> labelMap = new HashMap<String, Integer>() {
+		{
+			put("O", 0);
+			put("LOC", 1);
+			put("MISC", 2);
+			put("ORG", 3);
+			put("PER", 4);
+		}
+	};
 	private final static int K = 5;
 	private SimpleMatrix lookupTable;
-	private double alpha = 0.001;
+	private double alpha;
 	
 	
 	public static String OUTPUT_FILENAME = "example1.out";
@@ -323,6 +332,22 @@ public class WindowModel {
 		}
 	}
 	
+	
+	
+	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
+	private double costFunction(List<Datum> _trainingData) {
+		double cost = 0;
+		int m = _trainingData.size();
+		for (int i = 0; i < m; i++) {
+			int index = labelMap.get(_trainingData.get(i).label);
+			SimpleMatrix pTheta = getPTheta(i, _trainingData);
+			
+				// add Log
+			cost += Math.log(pTheta.get(index));
+		}
+		return cost;
+	}
+	// END OF JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------
 	
 	public void test(List<Datum> testData){
 		//Baseline function
