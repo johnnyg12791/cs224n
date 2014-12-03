@@ -68,6 +68,65 @@ public class WindowModel {
 		
 		
 	}
+	
+	
+	/*
+	 * This function returns the gradient of U
+	 * It is a simple matrix with the same dimentions as U: k x H
+	 * In our project, k is 5 and H is 100
+	 */
+	private SimpleMatrix gradientU(List<Datum> trainData, int pos) {
+		// Get h: Hx1 (column vector)
+		// Get hT (1xH)
+		// Get (p - y) (5x1)
+		// Return 1/m * (p-y) * hT = 5xH 
+		return null;
+	}
+	
+	
+	/*
+	 * This function gets the gradient of b2.
+	 * It returns a simple matrix with the same dimensions as b1: k x 1
+	 * In our project, k is 5.
+	 */
+	private SimpleMatrix gradientB2(List<Datum> trainData, int pos) {
+		// Get y
+		// Get p (5x1)
+		// Return 1/m * (p - y)
+		return null;
+	}
+	
+	
+	/*
+	 * 
+	 */
+	private SimpleMatrix gradientW(List<Datum> trainData, int pos) {
+		// Get UT
+		// Get xT
+		// Get y
+		// Get p
+		// Compute v = UT*y*xT - UT*px*T
+		// Compute z
+		// Update each position with 1 - tanh^2(zi)
+		// For each position i
+		// Multiply zi by vi
+		// Return z
+		return null;
+	}
+	
+	private SimpleMatrix gradientB1(List<Datum> trainData, int pos) {
+		// Get UT
+		// Get z
+		// For each position make 1 - tanh^2(zi)
+		// Compute x = UT(y - p)
+		// For each position i, multiply xi by zi
+		// Return zi
+		return null;
+	}
+	
+	private SimpleMatrix gradientL(List<Datum> trainData, int pos) {
+		return null;
+	}
 
 	
 	public void test(List<Datum> testData){
