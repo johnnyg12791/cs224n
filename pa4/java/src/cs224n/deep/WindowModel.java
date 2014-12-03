@@ -17,6 +17,9 @@ public class WindowModel {
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap ;
+	private static final double ALPHA = 0.001;
+	
+	//private int 
 	
 	public static String OUTPUT_FILENAME = "example1.out";
 	//Initial defaults are: (5, 100,0.001)
@@ -64,11 +67,56 @@ public class WindowModel {
 		
 		//End of baseline function
 		
+		
+	// JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------------
+		runSGD(_trainData);
+	// END OF JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------
+		
 		//	TODO Feedforward function
-		
-		
 	}
-
+	
+	// JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------------
+	
+	/*
+	 * Run stochastic gradient descent
+	 */
+	private void runSGD(List<Datum> _trainingData) {
+		int m = _trainingData.size();
+		for (int i = 1; i <= m; i++) {
+			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
+			SimpleMatrix gradientU = gradientU(i, _trainingData);
+			updateMatrix(U, gradientU);
+			
+			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
+			SimpleMatrix gradientB2 = gradientB2(i, _trainingData);
+			updateMatrix(B2, gradientB2);
+			
+			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
+			SimpleMatrix gradientW = gradientW(i, _trainingData);
+			updateMatrix(W, gradientW);
+			
+			// 4. b(1)(t) = b(1)(t-1) - alpha*d/db Ji(b(1))
+			SimpleMatrix gradientB1 = gradientB1(i, _trainingData);
+			updateMatrix(B1, gradientB1);
+			
+			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
+			SimpleMatrix gradientL = gradientL(i, _trainingData);
+			updateMatrix(L, gradientL);
+		}
+	}
+	
+	/*
+	 * Helper function for runSGD. Updates the specified matrix using 
+	 * its current state and the gradient matrix.
+	 */
+	private void updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
+		for (int row = 0; row < m.numRows(); row++) {
+			for (int col = 0; col < m.numCols(); col++) {
+				m.set(row, col, m.get(row, col) - ALPHA * gradient_m.get(row, col));
+			}
+		}
+	}
+	// END OF JUSTIN'S AWESOME STUFF -----------------------------------------------------------------------------------
 	
 	public void test(List<Datum> testData){
 		//Baseline function
