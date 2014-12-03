@@ -12,7 +12,7 @@ import java.text.*;
 
 public class WindowModel {
 
-	protected SimpleMatrix L, W, U, B1, B2;
+	protected SimpleMatrix W, U, B1, B2;
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap ;
@@ -25,6 +25,7 @@ public class WindowModel {
 			put("PER", 4);
 		}
 	};
+	
 	private final static int K = 5;
 	private SimpleMatrix lookupTable;
 	private double alpha;
@@ -227,8 +228,43 @@ public class WindowModel {
 	}
 	
 	private SimpleMatrix gradientL(int pos, List<Datum> trainingData) {
-		return null;
+		int[] windows = getWindowNums(pos, trainingData);
+		SimpleMatrix gradL = new SimpleMatrix(lookupTable.numRows(), lookupTable.numCols());
+		// Get p
+		SimpleMatrix p = softMax(getMatrixH(pos, trainingData));
+		SimpleMatrix z = getMatrixZ(pos, trainingData);
+		// For each position make 1 - tanh^2(zi)
+		for(int j = 0; j < z.numRows(); j++) {
+			z.set(j, 0, 1 - Math.tanh(z.get(j, 0))*Math.tanh(z.get(j, 0)));
+		}
+		SimpleMatrix UT = U.transpose();
+		SimpleMatrix y = getTrueY(pos, trainingData);
+		SimpleMatrix diff = y.minus(p);
+		SimpleMatrix prod = UT.mult(diff);
+		SimpleMatrix rowFactor = prod.elementMult(z).transpose();
+		
+		for(int i = 0; i < windows.length; i++) {
+			modifyColumn(windows[i], i, gradL, pos, trainingData, rowFactor);
+		}
+		
+		return gradL;
 	}
+	
+	private void modifyColumn(int col, int posInWindow, SimpleMatrix gradL, int pos, 
+			List<Datum> trainingData, SimpleMatrix rowFactor) {
+		for(int row = 0; row < gradL.numRows(); row++) {
+			SimpleMatrix W = getPortionOfW(posInWindow, row);
+			double result = rowFactor.mult(W).get(0, 0);
+			gradL.setColumn(row, col, result);
+		}		
+	}
+	
+	private SimpleMatrix getPortionOfW(int posInWindow, int row) {
+		int n = W.numCols() / windowSize;
+		return W.extractVector(false, posInWindow * n + row);
+	}
+	
+	
 
 	//Gets matrix Z based on i
 	private SimpleMatrix getMatrixZ(int i, List<Datum> trainData){
