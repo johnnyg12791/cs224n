@@ -27,6 +27,8 @@ public class WindowModel {
 	};
 	
 	private final static int K = 5;
+	public final static double EPSILON = 0.0001;
+	public final static double THRESHOLD = 0.0000001;
 	private SimpleMatrix lookupTable;
 	private double alpha;
 	
@@ -74,7 +76,7 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> _trainData ){
 		//Baseline function: Exact string matching
-		for(Datum datum : _trainData){
+		/*for(Datum datum : _trainData){
 			exactMatchMap.put(datum.word, datum.label);
 			if(unambiguousMatchMap.containsKey(datum.word)){
 				if(unambiguousMatchMap.get(datum.word).equals(datum.label)){
@@ -86,19 +88,52 @@ public class WindowModel {
 			} else {
 				unambiguousMatchMap.put(datum.word, datum.label);
 			}
-		}
+		}*/
 		//End of baseline function
 		//runSGD(_trainData);
 
 		//	TODO Feedforward function
-		for(int i = 0; i < _trainData.size(); i++){
+		/*for(int i = 0; i < _trainData.size(); i++){
 			//SimpleMatrix Xi = getXi(i, _trainData);
 			SimpleMatrix H = getMatrixH(i, _trainData);
 			SimpleMatrix P = softMax(H);
 			System.out.println(P);
+			//TODO backprop (with SGD, so only for this window)
+		}*/
+		gradientCheck(_trainData);
+	}
+	
+	private void gradientCheck(List<Datum> _trainingData) {
+		initWeights();
+		for(int i = 0; i < 10; i++){
+			checkGradU(i, _trainingData);
 			
 			//TODO backprop (with SGD, so only for this window)
 		}	
+	}
+	
+	private void checkGradU(int i, List<Datum> _trainData) {
+		SimpleMatrix gradU = gradientU(i, _trainData);
+		for(int row = 0; row < U.numRows(); row++) {
+			for(int col = 0; col < U.numCols(); col++) {
+				U.set(row, col, U.get(row, col)+EPSILON);
+				double cost1 = costFunction(_trainData, i);
+				U.set(row, col, U.get(row, col)-2*EPSILON);
+				double cost2 = costFunction(_trainData, i);
+				// Readjust our instance variable back to original
+				U.set(row, col, U.get(row, col)+EPSILON);
+				
+				System.out.println("The known estimate: " + (cost1-cost2)/(2*EPSILON));
+				System.out.println("Our computed gradient: " + gradU.get(row, col));
+				if((gradU.get(row, col) - (cost1-cost2)/(2*EPSILON) > THRESHOLD) || 
+						(gradU.get(row, col) - (cost1-cost2)/(2*EPSILON) < -1* THRESHOLD)) {
+					System.err.println("OOPS!");
+				} else {
+					System.out.println("Success!");
+				}
+			}
+		}
+		
 	}
 	
 	
@@ -144,7 +179,7 @@ public class WindowModel {
 		// Return 1/m * (p-y) * hT = 5xH 
 		SimpleMatrix result = difference.mult(hT);
 		
-		return result.scale(1.0/trainingData.size());
+		return result.scale(-1); //.scale(1.0/trainingData.size());
 	}
 	
 	private SimpleMatrix getTrueY(int pos, List<Datum> trainingData) {
@@ -170,7 +205,7 @@ public class WindowModel {
 		SimpleMatrix difference = p.minus(y);
 
 		// Return 1/m * (p - y)
-		return difference.scale(1.0/trainingData.size());
+		return difference; //.scale(1.0/trainingData.size());
 	}
 	
 	
@@ -391,16 +426,16 @@ public class WindowModel {
 	
 	
 	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
-	private double costFunction(List<Datum> _trainingData) {
+	private double costFunction(List<Datum> _trainingData, int pos) {
 		double cost = 0;
-		int m = _trainingData.size();
-		for (int i = 0; i < m; i++) {
-			int index = labelMap.get(_trainingData.get(i).label);
-			SimpleMatrix pTheta = getPTheta(i, _trainingData);
+		//int m = _trainingData.size();
+		//for (int i = 0; i < m; i++) {
+			int index = labelMap.get(_trainingData.get(pos).label);
+			SimpleMatrix pTheta =  softMax(getMatrixH(pos, _trainingData));
 			
 				// add Log
 			cost += Math.log(pTheta.get(index));
-		}
+		//}
 		return cost;
 	}
 	// END OF JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------
