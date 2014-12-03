@@ -78,7 +78,7 @@ public class WindowModel {
 			}
 		}
 		//End of baseline function
-		runSGD(_trainData);
+		//runSGD(_trainData);
 
 		//	TODO Feedforward function
 		for(int i = 0; i < _trainData.size(); i++){
@@ -175,7 +175,27 @@ public class WindowModel {
 		return Xi;
 	}
 	
-
+	
+	//Whats upppp - The guy who's dating a super model
+	//Pass in a lamba for regularization and m (the size of training set)
+	private double getRegularizationTerm(double lambda, int m){
+		double regularization = 0.0;
+		for(int i = 0; i < hiddenSize; i++){
+			for(int j = 0; j < wordSize*windowSize; j++){
+				regularization += Math.pow(W.get(i, j),2);
+			}
+		}
+		for(int i = 0; i < K; i++){
+			for(int j = 0; j < hiddenSize; j++){
+				regularization += Math.pow(U.get(i, j), 2);
+			}
+		}
+		
+		return (lambda/2*m) * (regularization);
+	}
+	
+	
+	
 	
 	// JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------------
 	
