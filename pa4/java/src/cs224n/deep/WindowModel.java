@@ -60,7 +60,6 @@ public class WindowModel {
 	 * Initializes the weights randomly. 
 	 */
 	public void initWeights(){
-		//TODO
 		// initialize with bias inside as the last column
 		Random rand = new Random();
 		double eInit = Math.sqrt(6)/Math.sqrt(windowSize*wordSize + hiddenSize);//nC + H
@@ -94,9 +93,12 @@ public class WindowModel {
 				unambiguousMatchMap.put(datum.word, datum.label);
 			}
 		}*/
+		//Collections.shuffle(_trainData);
 		//End of baseline function
 		for(int i = 0; i < 5; i++) {
 			System.out.println("iteration: " + i);
+			System.out.println(W);
+			System.out.println(U);
 			runSGD(_trainData);
 		}
 	}
@@ -116,10 +118,10 @@ public class WindowModel {
 			checkGrad(i, _trainingData, U, gradU, "U");
 			SimpleMatrix gradB2 = gradientB2(i, _trainingData, p);
 			checkGrad(i, _trainingData, B2, gradB2, "B2");
-			SimpleMatrix gradW = gradientW(i, _trainingData, p, z);
-			checkGrad(i, _trainingData, W, gradW, "W");
 			SimpleMatrix gradB1 = gradientB1(i, _trainingData, p, z);
 			checkGrad(i, _trainingData, B1, gradB1, "B1");
+			SimpleMatrix gradW = gradientW(i, _trainingData, gradB1);
+			checkGrad(i, _trainingData, W, gradW, "W");
 			SimpleMatrix gradL = gradientL(i, _trainingData, false, gradB1);
 			checkGrad(i, _trainingData, lookupTable, gradL, "L");
 		}	
@@ -211,52 +213,20 @@ public class WindowModel {
 	 * W is a matrix with dimensions H x Cn
 	 * In our project, C = 5, H = 100 and n = 50
 	 */
-	private SimpleMatrix gradientW(int pos, List<Datum> trainingData, SimpleMatrix p, SimpleMatrix z) {
-		// Get UT
-		//SimpleMatrix UT = U.transpose();
-		// Get xT
-		SimpleMatrix xT = getXi(pos, trainingData).transpose();
-		// Get y
-		SimpleMatrix y = getTrueY(pos, trainingData);
-		// Get p
-		// SimpleMatrix p = softMax(getMatrixH(pos, trainingData));
-		// Compute v = UT*y*xT - UT*p*xT
-		//SimpleMatrix v1 = (U.transpose().mult(y)).mult(xT);
-		//SimpleMatrix v2 = (U.transpose().mult(p)).mult(xT);
-		
-		SimpleMatrix v = ((U.transpose().mult(y)).mult(xT)).minus((U.transpose().mult(p)).mult(xT));
-		
-		// Compute z
-		/*
-		SimpleMatrix z = getMatrixZ(pos, trainingData);
-		// Update each position with 1 - tanh^2(zi)
-		// z is a column vector
-		for(int i = 0; i < z.numRows(); i++) {
-			z.set(i, 0, 1 - Math.tanh(z.get(i, 0))*Math.tanh(z.get(i, 0)));
-		}*/
-		
-		// Return elementwise multiplication of z and v
-		for(int col = 0; col < v.numCols(); col++) {
-			for(int row = 0; row < v.numRows(); row++) {
-				v.set(row, col, v.get(row, col) * z.get(row, 0));
-			}
-		}
-		
-		return v;
+	private SimpleMatrix gradientW(int pos, List<Datum> trainingData, SimpleMatrix gradB1) {
+		SimpleMatrix Xi = getXi(pos, trainingData);
+		return gradB1.mult(Xi.transpose());
 	}
 	
 	
 	private SimpleMatrix regGradientW(int pos, List<Datum> trainingData, SimpleMatrix gradB1) {
-		SimpleMatrix regTerm = W.scale(lambda/trainingData.size());
-		//SimpleMatrix unregGrad = gradientW(pos, trainingData, p, z);
+		SimpleMatrix regTerm = W.scale(lambda/(trainingData.size()));
 		SimpleMatrix Xi = getXi(pos, trainingData);
-		
-		//return regTerm.plus(unregGrad);
-		return gradB1.mult(Xi.transpose()).plus(regTerm);
+		return (gradB1.mult(Xi.transpose())).plus(regTerm);
 	}
 	
 	private SimpleMatrix regGradientU(int pos, List<Datum> trainingData, SimpleMatrix p) {
-		SimpleMatrix regTerm = U.scale(lambda/trainingData.size());
+		SimpleMatrix regTerm = U.scale(lambda/(trainingData.size()));
 		SimpleMatrix unregGrad = gradientU(pos, trainingData, p);
 		return regTerm.plus(unregGrad);
 	}
@@ -292,7 +262,7 @@ public class WindowModel {
 				gradL.set(row, col, gradL.get(row, col) - result.get(row, 0)); 
 			}
 			if(update) {
-				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
+				lookupTable.set(row, col, lookupTable.get(row, col) - (alpha * result.get(row, 0)));
 			}
 		}
 	}
@@ -304,13 +274,6 @@ public class WindowModel {
 		SimpleMatrix portion = W.extractMatrix(0, W.numRows(), colStart, colStart + numCols);
 		return portion.transpose();
 	}
-	
-	/*
-	private SimpleMatrix getPortionOfW(int posInWindow, int row) {
-		int n = W.numCols() / windowSize;
-		return W.extractVector(false, posInWindow * n + row);
-	}*/
-	
 	
 
 	//Gets matrix Z based on i
@@ -415,12 +378,11 @@ public class WindowModel {
 	 * Run stochastic gradient descent
 	 */
 	private void runSGD(List<Datum> _trainingData) {
-		int m = _trainingData.size();
+		int m = 20000; //_trainingData.size();
 		for (int i = 0; i < m; i++) {
-			if(i % 10000 == 0) {
+			if(i % 1000 == 0) {
 				System.out.println("training example " + i);
 			}
-			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
 			SimpleMatrix p = softMax(getMatrixH(i, _trainingData));	
 			
 			SimpleMatrix z = getMatrixZ(i, _trainingData);
@@ -428,8 +390,10 @@ public class WindowModel {
 			for(int j = 0; j < z.numRows(); j++) {
 				z.set(j, 0, 1 - Math.pow(Math.tanh(z.get(j, 0)), 2));
 			}
-
-			SimpleMatrix gradientU = gradientU(i, _trainingData, p);
+			
+			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
+			//SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
+			SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
 			
 			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
 			SimpleMatrix gradientB2 = gradientB2(i, _trainingData, p);
@@ -438,17 +402,15 @@ public class WindowModel {
 			SimpleMatrix gradientB1 = gradientB1(i, _trainingData, p, z);
 			
 			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
-			//SimpleMatrix gradientW = johnGradientW(i, _trainingData, gradientB1);
-			SimpleMatrix gradientW = gradientW(i, _trainingData, p, z);
+			//SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
+			SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
 			SimpleMatrix gradientL = gradientL(i, _trainingData, true, gradientB1);
-			//Moved all update calls here
-			updateMatrix(B2, gradientB2);
-			updateMatrix(B1, gradientB1);
-			updateMatrix(W, gradientW);
-			updateMatrix(U, gradientU);
-
+			U = updateMatrix(U, gradientU);
+			B2 = updateMatrix(B2, gradientB2);
+			B1 = updateMatrix(B1, gradientB1);
+			W = updateMatrix(W, gradientW);
 		}
 	}
 	
@@ -456,26 +418,22 @@ public class WindowModel {
 	 * Helper function for runSGD. Updates the specified matrix using 
 	 * its current state and the gradient matrix.
 	 */
-	private void updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
-		m = m.minus(gradient_m.scale(alpha));
-		/*
-		for (int row = 0; row < m.numRows(); row++) {
-			for (int col = 0; col < m.numCols(); col++) {
-				m.set(row, col, m.get(row, col) - alpha * gradient_m.get(row, col));
-			}
-		}*/
+	private SimpleMatrix updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
+		return m.minus(gradient_m.scale(alpha));
 	}
 	
 	
 	
 	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
+	//This gets the cost for a specific position in our training data
 	private double costFunction(List<Datum> _trainingData, int pos) {
-		double cost = 0;
+		//double cost = 0;
 		int index = labelMap.get(_trainingData.get(pos).label);
 		SimpleMatrix pTheta =  softMax(getMatrixH(pos, _trainingData));	
 		// add Log
-		cost += Math.log(pTheta.get(index));
-		return cost;
+		//cost += Math.log(pTheta.get(index));
+		//return cost;
+		return Math.log(pTheta.get(index));
 	}
 	
 	public void test(List<Datum> testData){
