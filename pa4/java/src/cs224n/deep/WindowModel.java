@@ -120,7 +120,7 @@ public class WindowModel {
 			checkGrad(i, _trainingData, W, gradW, "W");
 			SimpleMatrix gradB1 = gradientB1(i, _trainingData, p, z);
 			checkGrad(i, _trainingData, B1, gradB1, "B1");
-			SimpleMatrix gradL = gradientL(i, _trainingData, false, p, z);
+			SimpleMatrix gradL = gradientL(i, _trainingData, false, gradB1);
 			checkGrad(i, _trainingData, lookupTable, gradL, "L");
 		}	
 	}
@@ -264,41 +264,47 @@ public class WindowModel {
 		return z.elementMult(x);
 	}
 	
-	private SimpleMatrix gradientL(int pos, List<Datum> trainingData, boolean update, SimpleMatrix p, SimpleMatrix z) {
+	private SimpleMatrix gradientL(int pos, List<Datum> trainingData, boolean update, SimpleMatrix gradB1) {//SimpleMatrix p, SimpleMatrix z) {
 		int[] windows = getWindowNums(pos, trainingData);
-		SimpleMatrix gradL = new SimpleMatrix(lookupTable.numRows(), lookupTable.numCols());
-		// Get p
-		//SimpleMatrix p = softMax(getMatrixH(pos, trainingData));
-		
-		SimpleMatrix UT = U.transpose();
-		SimpleMatrix y = getTrueY(pos, trainingData);
-		SimpleMatrix diff = y.minus(p);
-		SimpleMatrix prod = UT.mult(diff);
-		SimpleMatrix rowFactor = prod.elementMult(z).transpose();
+		SimpleMatrix gradL = null;
+		if(!update) {
+			gradL = new SimpleMatrix(lookupTable.numRows(), lookupTable.numCols());
+		}
 		
 		for(int i = 0; i < windows.length; i++) {
-			modifyColumn(windows[i], i, gradL, pos, trainingData, rowFactor, update);
+			modifyColumn(windows[i], i, gradL, pos, trainingData, gradB1, update);
 		}
 		
 		return gradL;
 	}
 	
 	private void modifyColumn(int col, int posInWindow, SimpleMatrix gradL, int pos, 
-			List<Datum> trainingData, SimpleMatrix rowFactor, boolean update) {
-		for(int row = 0; row < gradL.numRows(); row++) {
-			SimpleMatrix W = getPortionOfW(posInWindow, row);
-			double result = rowFactor.mult(W).get(0, 0);
-			gradL.set(row, col, result + gradL.get(row, col));
+			List<Datum> trainingData, SimpleMatrix gradB1, boolean update) {
+		SimpleMatrix w = getPortionOfW(posInWindow);
+		SimpleMatrix result = w.mult(gradB1);
+		for(int row = 0; row < result.numRows(); row++) {
+			if(!update) {
+				gradL.set(row, col, gradL.get(row, col) + result.get(row, 0)); 
+			}
 			if(update) {
-				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * gradL.get(row, col));
+				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
 			}
 		}
 	}
 	
+	private SimpleMatrix getPortionOfW(int posInWindow) {
+		int n = W.numCols() / windowSize;
+		int colStart = posInWindow * n;
+		int numCols = lookupTable.numRows();
+		SimpleMatrix portion = W.extractMatrix(0, W.numRows(), colStart, colStart + numCols);
+		return portion.transpose();
+	}
+	
+	/*
 	private SimpleMatrix getPortionOfW(int posInWindow, int row) {
 		int n = W.numCols() / windowSize;
 		return W.extractVector(false, posInWindow * n + row);
-	}
+	}*/
 	
 	
 
@@ -406,9 +412,8 @@ public class WindowModel {
 	 */
 	private void runSGD(List<Datum> _trainingData) {
 		int m = _trainingData.size();
-		m = 2000;
 		for (int i = 1; i <= m; i++) {
-			if(i % 100 == 0) {
+			if(i % 10000 == 0) {
 				System.out.println("training example " + i);
 			}
 			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
@@ -436,7 +441,7 @@ public class WindowModel {
 			updateMatrix(W, gradientW);
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
-			SimpleMatrix gradientL = gradientL(i, _trainingData, true, p, z);
+			SimpleMatrix gradientL = gradientL(i, _trainingData, true, gradientB1);
 		}
 	}
 	
