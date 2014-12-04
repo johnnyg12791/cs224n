@@ -95,8 +95,8 @@ public class WindowModel {
 			}
 		}*/
 		//End of baseline function
-		for(int i = 0; i < 1; i++) {
-			System.out.println(i);
+		for(int i = 0; i < 5; i++) {
+			System.out.println("iteration: " + i);
 			runSGD(_trainData);
 		}
 	}
@@ -336,7 +336,12 @@ public class WindowModel {
 			else if(j >= trainData.size()) 
 				word = "</s>";
 			else 
-				word = trainData.get(j).word;
+				word = trainData.get(j).word.toLowerCase();
+			//Do digit checking here as well::
+			//https://piazza.com/class/hyxho2urgyd6bz?cid=462
+			if(word.length() > 2)
+				word = convertDigitsToDG(word);
+			
 			//Then we get the index of that word from wordToNum
 			if(wordToNum.containsKey(word))
 				windowNums[j-middleIndex+windowSize/2] = wordToNum.get(word);
@@ -344,6 +349,19 @@ public class WindowModel {
 				windowNums[j-middleIndex+windowSize/2] = wordToNum.get("UUUNKKK");
 		}
 		return windowNums;
+	}
+	
+	private String convertDigitsToDG(String word){
+		String result = "";
+		//for character in word, if its numeric, add "DG" to result, otherwise nothing
+		for(int i = 0; i < word.length(); i++){
+			if(Character.isDigit(word.charAt(i)))
+				result += "DG";
+			else
+				result += word.charAt(i);
+		}
+		
+		return result;
 	}
 	
 	
