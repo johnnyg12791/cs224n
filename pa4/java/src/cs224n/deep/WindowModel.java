@@ -390,10 +390,9 @@ public class WindowModel {
 		return (lambda/2*m) * (regularization);
 	}
 	
-	
-	
-	
-	// JUSTIN'S AWESOME STUFF ---------------------------------------------------------------------------------------
+	private double getRegularizedCostFunction(List<Datum> _trainingData, int pos, double lambda) {
+		return costFunction(_trainingData, pos) + getRegularizationTerm(lambda, _trainingData.size());
+	}
 	
 	/*
 	 * Run stochastic gradient descent
@@ -450,11 +449,9 @@ public class WindowModel {
 		//}
 		return cost;
 	}
-	// END OF JUSTIN'S AWESOME STUFF ----------------------------------------------------------------------------------
 	
 	public void test(List<Datum> testData){
 		//Baseline function
-		//TODO: Has not been tested (written by John)
 		try {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(Datum datum : testData){
@@ -471,9 +468,6 @@ public class WindowModel {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		//End of baseline function
-
-		// TODO
-		}
+	}
 	
 }
