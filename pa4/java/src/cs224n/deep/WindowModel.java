@@ -16,6 +16,7 @@ public class WindowModel {
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap ;
+	private ArrayList<Integer> modifiedColumns;
 	private Map<String, Integer> labelMap = new HashMap<String, Integer>() {
 		{
 			put("O", 0);
@@ -52,6 +53,7 @@ public class WindowModel {
 		wordSize = 50; //As specified in the assignment handout (n)
 		exactMatchMap = new HashMap<String, String>();
 		unambiguousMatchMap = new HashMap<String, String>();
+		modifiedColumns = new ArrayList<Integer>();
 		lambda = _lambda;
 		lookupTable = allVecs.transpose();
 	}
@@ -124,8 +126,30 @@ public class WindowModel {
 			SimpleMatrix gradW = gradientW(i, _trainingData, gradB1);
 			checkGrad(i, _trainingData, W, gradW, "W");
 			SimpleMatrix gradL = gradientL(i, _trainingData, false, gradB1);
-			checkGrad(i, _trainingData, lookupTable, gradL, "L");
+			checkGradL(i, _trainingData, lookupTable, gradL);
 		}	
+	}
+	
+	private void checkGradL(int i, List<Datum> _trainData, SimpleMatrix L, SimpleMatrix gradL) {
+		for(int row = 0; row < L.numRows(); row++) {
+			for(int col : modifiedColumns) {
+				L.set(row, col, L.get(row, col)+EPSILON);
+				double cost1 = costFunction(_trainData, i);
+				L.set(row, col, L.get(row, col)-2*EPSILON);
+				double cost2 = costFunction(_trainData, i);
+				// Readjust our instance variable back to original
+				L.set(row, col, L.get(row, col)+EPSILON);
+				
+				if((gradL.get(row, col) - (cost1-cost2)/(2*EPSILON) > THRESHOLD) || 
+						(gradL.get(row, col) - (cost1-cost2)/(2*EPSILON) < -1* THRESHOLD)) {
+					System.out.println("OOPS!  Computed " + gradL.get(row, col) + " at position "
+							+ "(" + row + ", " + col + ") in matrix L");
+					System.out.println("Expected " + (cost1-cost2)/(2*EPSILON));
+				}
+			}
+		}
+		System.out.println("Finished checking matrix L.");
+		System.out.println("If you don't see any errors, that's a success!");
 	}
 	
 	private void checkGrad(int i, List<Datum> _trainData, SimpleMatrix M, SimpleMatrix gradM, String label) {
@@ -147,8 +171,7 @@ public class WindowModel {
 			}
 		}
 		System.out.println("Finished checking matrix " + label + ".");
-		System.out.println("If you don't see any errors, that's a success!");
-		
+		System.out.println("If you don't see any errors, that's a success!");	
 	}
 	
 	
@@ -241,10 +264,12 @@ public class WindowModel {
 		int[] windows = getWindowNums(pos, trainingData);
 		SimpleMatrix gradL = null;
 		if(!update) {
+			modifiedColumns.clear();
 			gradL = new SimpleMatrix(lookupTable.numRows(), lookupTable.numCols());
 		}
 		
 		for(int i = 0; i < windows.length; i++) {
+			modifiedColumns.add(windows[i]);
 			modifyColumn(windows[i], i, gradL, pos, trainingData, gradB1, update);
 		}
 		
