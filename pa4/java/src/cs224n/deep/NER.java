@@ -23,7 +23,7 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100,0.001, allVecs);
+			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.1);
 			
 			model.gradientCheck(trainData);
 		} else {
@@ -37,7 +37,7 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100,0.001, allVecs);
+			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.1);
 			model.initWeights();
 		
 			//TODO: Implement those two functions
