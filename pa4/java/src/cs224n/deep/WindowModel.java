@@ -31,11 +31,11 @@ public class WindowModel {
 	public final static double THRESHOLD = 0.0000001;
 	private SimpleMatrix lookupTable;
 	private double alpha;
-	
+	private double lambda;
 	
 	public static String OUTPUT_FILENAME = "example1.out";
 	//Initial defaults are: (5, 100,0.001)
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, SimpleMatrix allVecs){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, SimpleMatrix allVecs, double _lambda){
 		//TODO
 		windowSize = _windowSize; //C
 		hiddenSize = _hiddenSize; //H
@@ -43,6 +43,7 @@ public class WindowModel {
 		wordSize = 50; //As specified in the assignment handout (n)
 		exactMatchMap = new HashMap<String, String>();
 		unambiguousMatchMap = new HashMap<String, String>();
+		lambda = _lambda;
 		lookupTable = allVecs.transpose();
 	}
 
@@ -95,6 +96,9 @@ public class WindowModel {
 		//	TODO Feedforward function
 		for(int i = 0; i < _trainData.size(); i++){
 			//SimpleMatrix Xi = getXi(i, _trainData);
+			
+			// Be aware of lower case here!
+			
 			SimpleMatrix H = getMatrixH(i, _trainData);
 			SimpleMatrix P = softMax(H);
 			System.out.println(P);
@@ -253,6 +257,18 @@ public class WindowModel {
 		return v;
 	}
 	
+	private SimpleMatrix regGradientW(int pos, List<Datum> trainingData) {
+		SimpleMatrix regTerm = W.scale(lambda/trainingData.size());
+		SimpleMatrix unregGrad = gradientW(pos, trainingData);
+		return regTerm.plus(unregGrad);
+	}
+	
+	private SimpleMatrix regGradientU(int pos, List<Datum> trainingData) {
+		SimpleMatrix regTerm = U.scale(lambda/trainingData.size());
+		SimpleMatrix unregGrad = gradientU(pos, trainingData);
+		return regTerm.plus(unregGrad);
+	}
+	
 	private SimpleMatrix gradientB1(int pos, List<Datum> trainingData) {
 		// Get UT
 		SimpleMatrix UT = U.transpose();
@@ -374,7 +390,7 @@ public class WindowModel {
 	
 	//Whats upppp - The guy who's dating a super model
 	//Pass in a lamba for regularization and m (the size of training set)
-	private double getRegularizationTerm(double lambda, int m){
+	private double getRegularizationTerm(int m){
 		double regularization = 0.0;
 		for(int i = 0; i < hiddenSize; i++){
 			for(int j = 0; j < wordSize*windowSize; j++){
@@ -390,8 +406,8 @@ public class WindowModel {
 		return (lambda/2*m) * (regularization);
 	}
 	
-	private double getRegularizedCostFunction(List<Datum> _trainingData, int pos, double lambda) {
-		return costFunction(_trainingData, pos) + getRegularizationTerm(lambda, _trainingData.size());
+	private double getRegularizedCostFunction(List<Datum> _trainingData, int pos) {
+		return costFunction(_trainingData, pos) + getRegularizationTerm(_trainingData.size());
 	}
 	
 	/*
@@ -401,7 +417,7 @@ public class WindowModel {
 		int m = _trainingData.size();
 		for (int i = 1; i <= m; i++) {
 			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
-			SimpleMatrix gradientU = gradientU(i, _trainingData);
+			SimpleMatrix gradientU = regGradientU(i, _trainingData);
 			updateMatrix(U, gradientU);
 			
 			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
@@ -409,7 +425,7 @@ public class WindowModel {
 			updateMatrix(B2, gradientB2);
 			
 			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
-			SimpleMatrix gradientW = gradientW(i, _trainingData);
+			SimpleMatrix gradientW = regGradientW(i, _trainingData);
 			updateMatrix(W, gradientW);
 			
 			// 4. b(1)(t) = b(1)(t-1) - alpha*d/db Ji(b(1))
