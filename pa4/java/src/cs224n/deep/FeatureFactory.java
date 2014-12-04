@@ -105,10 +105,10 @@ public class FeatureFactory {
 		while ((line = reader.readLine()) != null) {
 			String[] words = line.split("\\s");
 			for (String word : words) {
-				wordToNum.put(word, index);
-				numToWord.put(index, word);
+				wordToNum.put(word.trim(), index);
+				numToWord.put(index, word.trim());
+				index++;
 			}
-		index++;
 		}
 		return wordToNum;
 	}

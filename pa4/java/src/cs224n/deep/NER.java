@@ -23,7 +23,7 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.1);
+			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.00001);
 			
 			model.gradientCheck(trainData);
 		} else {
@@ -32,15 +32,13 @@ public class NER {
 			List<Datum> testData = FeatureFactory.readTestData(args[1]);	
 			
 			//	read the train and test data
-			//TODO: Implement this function (just reads in vocab and word vectors)
 			FeatureFactory.initializeVocab("../data/vocab.txt");
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.1);
+			WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0);
 			model.initWeights();
 		
-			//TODO: Implement those two functions
 			model.train(trainData);
 			model.test(testData);
 		}

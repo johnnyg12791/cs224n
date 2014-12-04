@@ -60,7 +60,6 @@ public class WindowModel {
 	 * Initializes the weights randomly. 
 	 */
 	public void initWeights(){
-		//TODO
 		// initialize with bias inside as the last column
 		Random rand = new Random();
 		double eInit = Math.sqrt(6)/Math.sqrt(windowSize*wordSize + hiddenSize);//nC + H
@@ -94,6 +93,7 @@ public class WindowModel {
 				unambiguousMatchMap.put(datum.word, datum.label);
 			}
 		}*/
+		//Collections.shuffle(_trainData);
 		//End of baseline function
 		for(int i = 0; i < 5; i++) {
 			System.out.println("iteration: " + i);
@@ -213,13 +213,13 @@ public class WindowModel {
 	}
 	
 	private SimpleMatrix regGradientW(int pos, List<Datum> trainingData, SimpleMatrix gradB1) {
-		SimpleMatrix regTerm = W.scale(lambda/trainingData.size());
+		SimpleMatrix regTerm = W.scale(lambda/(trainingData.size()));
 		SimpleMatrix Xi = getXi(pos, trainingData);
-		return gradB1.mult(Xi.transpose()).plus(regTerm);
+		return (gradB1.mult(Xi.transpose())).plus(regTerm);
 	}
 	
 	private SimpleMatrix regGradientU(int pos, List<Datum> trainingData, SimpleMatrix p) {
-		SimpleMatrix regTerm = U.scale(lambda/trainingData.size());
+		SimpleMatrix regTerm = U.scale(lambda/(trainingData.size()));
 		SimpleMatrix unregGrad = gradientU(pos, trainingData, p);
 		return regTerm.plus(unregGrad);
 	}
@@ -255,7 +255,7 @@ public class WindowModel {
 				gradL.set(row, col, gradL.get(row, col) + result.get(row, 0)); 
 			}
 			if(update) {
-				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
+				lookupTable.set(row, col, lookupTable.get(row, col) - (alpha * result.get(row, 0)));
 			}
 		}
 	}
@@ -387,22 +387,22 @@ public class WindowModel {
 			}
 
 			SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
-			updateMatrix(U, gradientU);
 			
 			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
 			SimpleMatrix gradientB2 = gradientB2(i, _trainingData, p);
-			updateMatrix(B2, gradientB2);
 			
 			// 4. b(1)(t) = b(1)(t-1) - alpha*d/db Ji(b(1))
 			SimpleMatrix gradientB1 = gradientB1(i, _trainingData, p, z);
-			updateMatrix(B1, gradientB1);
 			
 			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
 			SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
-			updateMatrix(W, gradientW);
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
 			SimpleMatrix gradientL = gradientL(i, _trainingData, true, gradientB1);
+			U = updateMatrix(U, gradientU);
+			B2 = updateMatrix(B2, gradientB2);
+			B1 = updateMatrix(B1, gradientB1);
+			W = updateMatrix(W, gradientW);
 		}
 	}
 	
@@ -410,8 +410,8 @@ public class WindowModel {
 	 * Helper function for runSGD. Updates the specified matrix using 
 	 * its current state and the gradient matrix.
 	 */
-	private void updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
-		m = m.minus(gradient_m.scale(alpha));
+	private SimpleMatrix updateMatrix(SimpleMatrix m, SimpleMatrix gradient_m) {
+		return m.minus(gradient_m.scale(alpha));
 	}
 	
 	
