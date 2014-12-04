@@ -394,7 +394,7 @@ public class WindowModel {
 	 */
 	private void runSGD(List<Datum> _trainingData) {
 		int m = _trainingData.size();
-		for (int i = 1; i <= m; i++) {
+		for (int i = 0; i < m; i++) {
 			if(i % 10000 == 0) {
 				System.out.println("training example " + i);
 			}
