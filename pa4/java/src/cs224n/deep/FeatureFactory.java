@@ -37,6 +37,7 @@ public class FeatureFactory {
 	private static List<Datum> read(String filename)
 			throws FileNotFoundException, IOException {
 	    // TODO: you'd want to handle sentence boundaries
+		//If we are at the end of a sentence, add </s>, <s> then continue
 		List<Datum> data = new ArrayList<Datum>();
 		BufferedReader in = new BufferedReader(new FileReader(filename));
 		for (String line = in.readLine(); line != null; line = in.readLine()) {
