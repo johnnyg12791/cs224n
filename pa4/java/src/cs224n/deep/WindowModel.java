@@ -182,11 +182,15 @@ public class WindowModel {
 		return getTrueY(pos, trainingData).minus(p).mult(getMatrixA(pos, trainingData).transpose());
 	}
 	
+	//This seems to be doing what we want -John
+	//Based on a position in the training data, returns
+	//[1,0,0,0,0] if label is a 'O', [0,1,0,0,0] if label is a 'LOC', ....correctly mapped
 	private SimpleMatrix getTrueY(int pos, List<Datum> trainingData) {
 		Datum d = trainingData.get(pos);
 		int yIndex = labelMap.get(d.label);
 		SimpleMatrix y = new SimpleMatrix(K, 1);
 		y.set(yIndex, 0, 1);
+		//System.out.println(d.label + " " + y);
 		return y;
 	}
 	
@@ -241,6 +245,7 @@ public class WindowModel {
 		return v;
 	}
 	
+	
 	private SimpleMatrix regGradientW(int pos, List<Datum> trainingData, SimpleMatrix gradB1) {
 		SimpleMatrix regTerm = W.scale(lambda/trainingData.size());
 		//SimpleMatrix unregGrad = gradientW(pos, trainingData, p, z);
@@ -284,7 +289,7 @@ public class WindowModel {
 		SimpleMatrix result = w.mult(gradB1);
 		for(int row = 0; row < result.numRows(); row++) {
 			if(!update) {
-				gradL.set(row, col, gradL.get(row, col) + result.get(row, 0)); 
+				gradL.set(row, col, gradL.get(row, col) - result.get(row, 0)); 
 			}
 			if(update) {
 				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
@@ -343,8 +348,7 @@ public class WindowModel {
 				word = "</s>";
 			else 
 				word = trainData.get(j).word.toLowerCase();
-			//Do digit checking here as well::
-			//https://piazza.com/class/hyxho2urgyd6bz?cid=462
+			//Do digit checking here as well :: https://piazza.com/class/hyxho2urgyd6bz?cid=462
 			if(word.length() > 2)
 				word = convertDigitsToDG(word);
 			
@@ -425,23 +429,26 @@ public class WindowModel {
 				z.set(j, 0, 1 - Math.pow(Math.tanh(z.get(j, 0)), 2));
 			}
 
-			SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
-			updateMatrix(U, gradientU);
+			SimpleMatrix gradientU = gradientU(i, _trainingData, p);
 			
 			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
 			SimpleMatrix gradientB2 = gradientB2(i, _trainingData, p);
-			updateMatrix(B2, gradientB2);
 			
 			// 4. b(1)(t) = b(1)(t-1) - alpha*d/db Ji(b(1))
 			SimpleMatrix gradientB1 = gradientB1(i, _trainingData, p, z);
-			updateMatrix(B1, gradientB1);
 			
 			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
-			SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
-			updateMatrix(W, gradientW);
+			//SimpleMatrix gradientW = johnGradientW(i, _trainingData, gradientB1);
+			SimpleMatrix gradientW = gradientW(i, _trainingData, p, z);
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
 			SimpleMatrix gradientL = gradientL(i, _trainingData, true, gradientB1);
+			//Moved all update calls here
+			updateMatrix(B2, gradientB2);
+			updateMatrix(B1, gradientB1);
+			updateMatrix(W, gradientW);
+			updateMatrix(U, gradientU);
+
 		}
 	}
 	
@@ -494,6 +501,7 @@ public class WindowModel {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(int i = 0; i < testData.size(); i++){
 				SimpleMatrix p = softMax(getMatrixH(i, testData));
+				System.out.println(testData.get(i).word + " --- " + p);
 				int maxIndex = 0;
 				double maxVal = p.get(0, 0);
 				for(int index = 0; index < p.numRows(); index++) {
@@ -502,6 +510,7 @@ public class WindowModel {
 						maxIndex = index;
 					}
 				}
+				System.out.println(maxIndex);
 				String label = indexToLabelMap.get(maxIndex);
 				f0.write(testData.get(i).word + "\t" + testData.get(i).label + "\t");
 				f0.write(label + "\n");
