@@ -407,7 +407,7 @@ public class WindowModel {
 	 * Run stochastic gradient descent
 	 */
 	private void runSGD(List<Datum> _trainingData) {
-		int m = 20000; //_trainingData.size();
+		int m = _trainingData.size();
 		for (int i = 0; i < m; i++) {
 			if(i % 1000 == 0) {
 				System.out.println("training example " + i);
@@ -487,7 +487,6 @@ public class WindowModel {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(int i = 0; i < testData.size(); i++){
 				SimpleMatrix p = softMax(getMatrixH(i, testData));
-				System.out.println(testData.get(i).word + " --- " + p);
 				int maxIndex = 0;
 				double maxVal = p.get(0, 0);
 				for(int index = 0; index < p.numRows(); index++) {
@@ -496,7 +495,6 @@ public class WindowModel {
 						maxIndex = index;
 					}
 				}
-				System.out.println(maxIndex);
 				String label = indexToLabelMap.get(maxIndex);
 				f0.write(testData.get(i).word + "\t" + testData.get(i).label + "\t");
 				f0.write(label + "\n");

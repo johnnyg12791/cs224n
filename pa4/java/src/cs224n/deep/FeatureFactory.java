@@ -50,16 +50,6 @@ public class FeatureFactory {
 
 			Datum datum = new Datum(word, label);
 			data.add(datum);
-			//Something like this for sentence boundries
-			/* if(word.equals(".")){
-			 * 		for(int i = 0; i < K/2; i++){
-			 * 			data.add( new Datum("</s>", "O")	
-			 *		}
-			 *		for(int i = 0; i < K/2; i++){
-			 *			data.add( new Datum("<s>", "O"))
-			 *		}
-			 * }
-			 */
 		}
 
 		return data;
