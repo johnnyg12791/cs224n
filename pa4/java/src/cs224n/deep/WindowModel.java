@@ -210,11 +210,15 @@ public class WindowModel {
 		return r.scale(-1);
 	}
 	
+	//This seems to be doing what we want -John
+	//Based on a position in the training data, returns
+	//[1,0,0,0,0] if label is a 'O', [0,1,0,0,0] if label is a 'LOC', ....correctly mapped
 	private SimpleMatrix getTrueY(int pos, List<Datum> trainingData) {
 		Datum d = trainingData.get(pos);
 		int yIndex = labelMap.get(d.label);
 		SimpleMatrix y = new SimpleMatrix(K, 1);
 		y.set(yIndex, 0, 1);
+		//System.out.println(d.label + " " + y);
 		return y;
 	}
 	
@@ -240,6 +244,7 @@ public class WindowModel {
 		SimpleMatrix Xi = getXi(pos, trainingData);
 		return gradB1.mult(Xi.transpose());
 	}
+	
 	
 	private SimpleMatrix regGradientW(int pos, List<Datum> trainingData, SimpleMatrix gradB1) {
 		SimpleMatrix regTerm = W.scale(lambda/(trainingData.size()));
@@ -283,7 +288,7 @@ public class WindowModel {
 		SimpleMatrix result = w.mult(gradB1);
 		for(int row = 0; row < result.numRows(); row++) {
 			if(!update) {
-				gradL.set(row, col, gradL.get(row, col) + result.get(row, 0)); 
+				gradL.set(row, col, gradL.get(row, col) - result.get(row, 0)); 
 			}
 			if(update) {
 				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
@@ -335,8 +340,7 @@ public class WindowModel {
 				word = "</s>";
 			else 
 				word = trainData.get(j).word.toLowerCase();
-			//Do digit checking here as well::
-			//https://piazza.com/class/hyxho2urgyd6bz?cid=462
+			//Do digit checking here as well :: https://piazza.com/class/hyxho2urgyd6bz?cid=462
 			if(word.length() > 2)
 				word = convertDigitsToDG(word);
 			
@@ -409,7 +413,6 @@ public class WindowModel {
 			if(i % 10000 == 0) {
 				System.out.println("training example " + i);
 			}
-			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
 			SimpleMatrix p = softMax(getMatrixH(i, _trainingData));	
 			
 			SimpleMatrix z = getMatrixZ(i, _trainingData);
@@ -417,7 +420,9 @@ public class WindowModel {
 			for(int j = 0; j < z.numRows(); j++) {
 				z.set(j, 0, 1 - Math.pow(Math.tanh(z.get(j, 0)), 2));
 			}
-
+			
+			// 1. U(t) = U(t-1) - alpha*d/dU Ji(U)
+			//SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
 			SimpleMatrix gradientU = regGradientU(i, _trainingData, p);
 			
 			// 2. b(2)(t) = b(2)(t-1) - alpha*d/db Ji(b(2))
@@ -427,6 +432,7 @@ public class WindowModel {
 			SimpleMatrix gradientB1 = gradientB1(i, _trainingData, p, z);
 			
 			// 3. W(t) = W(t-1) - alpha*d/dW Ji(W)
+			//SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
 			SimpleMatrix gradientW = regGradientW(i, _trainingData, gradientB1);
 			
 			// 5. L(t) = L(t-1) - alpha*d/dL Ji(L)
@@ -449,6 +455,7 @@ public class WindowModel {
 	
 	
 	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
+	//This gets the cost for a specific position in our training data
 	private double costFunction(List<Datum> _trainingData, int pos) {
 		int index = labelMap.get(_trainingData.get(pos).label);
 		SimpleMatrix pTheta =  softMax(getMatrixH(pos, _trainingData));	
