@@ -12,7 +12,7 @@ public class NER {
 		if (args.length < 2) {
 		    System.out.println("USAGE: java -cp classes NER [check] ../data/train ../data/dev");
 		    return;
-		} if (args.length >= 3 && args[0].equals("check")) {
+		} else if (args.length >= 3 && args[0].equals("check")) {
 			// this reads in the train and test datasets
 			List<Datum> trainData = FeatureFactory.readTrainData(args[1]);
 			List<Datum> testData = FeatureFactory.readTestData(args[2]);
@@ -23,9 +23,23 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.00001);
+			WindowModel model = new WindowModel(5, 100,0.001, allVecs, 0.0001);
 			
 			model.gradientCheck(trainData);
+		} else if (args.length >= 3 && args[0].equals("baseline")) {
+			// this reads in the train and test datasets
+			List<Datum> trainData = FeatureFactory.readTrainData(args[1]);
+			List<Datum> testData = FeatureFactory.readTestData(args[2]);	
+			
+			//	read the train and test data
+			FeatureFactory.initializeVocab("../data/vocab.txt");
+			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
+		
+			// initialize model 
+			WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0.0001);
+		
+			model.trainBaseline(trainData);
+			model.testBaseline(testData);
 		} else {
 			// this reads in the train and test datasets
 			List<Datum> trainData = FeatureFactory.readTrainData(args[0]);
@@ -36,7 +50,7 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
-			WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0);
+			WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0.0001);
 			model.initWeights();
 		
 			model.train(trainData);

@@ -16,6 +16,7 @@ public class WindowModel {
 	public int windowSize,wordSize, hiddenSize;
 	public HashMap<String, String> exactMatchMap;
 	public HashMap<String, String> unambiguousMatchMap ;
+	private ArrayList<Integer> modifiedColumns;
 	private Map<String, Integer> labelMap = new HashMap<String, Integer>() {
 		{
 			put("O", 0);
@@ -52,6 +53,7 @@ public class WindowModel {
 		wordSize = 50; //As specified in the assignment handout (n)
 		exactMatchMap = new HashMap<String, String>();
 		unambiguousMatchMap = new HashMap<String, String>();
+		modifiedColumns = new ArrayList<Integer>();
 		lambda = _lambda;
 		lookupTable = allVecs.transpose();
 	}
@@ -78,9 +80,17 @@ public class WindowModel {
 	 * Simplest SGD training 
 	 */
 	public void train(List<Datum> _trainData ){
-		
+		//System.out.println(U.toString());
+		//System.out.println(W.toString());
+		for(int i = 0; i < 5; i++) {
+			System.out.println("iteration: " + i);
+			runSGD(_trainData);
+		}
+	}
+	
+	public void trainBaseline(List<Datum> _trainData ){
 		//Baseline function: Exact string matching
-		/*for(Datum datum : _trainData){
+		for(Datum datum : _trainData){
 			exactMatchMap.put(datum.word, datum.label);
 			if(unambiguousMatchMap.containsKey(datum.word)){
 				if(unambiguousMatchMap.get(datum.word).equals(datum.label)){
@@ -92,15 +102,8 @@ public class WindowModel {
 			} else {
 				unambiguousMatchMap.put(datum.word, datum.label);
 			}
-		}*/
-		//Collections.shuffle(_trainData);
-		//End of baseline function
-		for(int i = 0; i < 5; i++) {
-			System.out.println("iteration: " + i);
-			System.out.println(W);
-			System.out.println(U);
-			runSGD(_trainData);
 		}
+		//End of baseline function
 	}
 	
 	public void gradientCheck(List<Datum> _trainingData) {
@@ -123,8 +126,30 @@ public class WindowModel {
 			SimpleMatrix gradW = gradientW(i, _trainingData, gradB1);
 			checkGrad(i, _trainingData, W, gradW, "W");
 			SimpleMatrix gradL = gradientL(i, _trainingData, false, gradB1);
-			checkGrad(i, _trainingData, lookupTable, gradL, "L");
+			checkGradL(i, _trainingData, lookupTable, gradL);
 		}	
+	}
+	
+	private void checkGradL(int i, List<Datum> _trainData, SimpleMatrix L, SimpleMatrix gradL) {
+		for(int row = 0; row < L.numRows(); row++) {
+			for(int col : modifiedColumns) {
+				L.set(row, col, L.get(row, col)+EPSILON);
+				double cost1 = costFunction(_trainData, i);
+				L.set(row, col, L.get(row, col)-2*EPSILON);
+				double cost2 = costFunction(_trainData, i);
+				// Readjust our instance variable back to original
+				L.set(row, col, L.get(row, col)+EPSILON);
+				
+				if((gradL.get(row, col) - (cost1-cost2)/(2*EPSILON) > THRESHOLD) || 
+						(gradL.get(row, col) - (cost1-cost2)/(2*EPSILON) < -1* THRESHOLD)) {
+					System.out.println("OOPS!  Computed " + gradL.get(row, col) + " at position "
+							+ "(" + row + ", " + col + ") in matrix L");
+					System.out.println("Expected " + (cost1-cost2)/(2*EPSILON));
+				}
+			}
+		}
+		System.out.println("Finished checking matrix L.");
+		System.out.println("If you don't see any errors, that's a success!");
 	}
 	
 	private void checkGrad(int i, List<Datum> _trainData, SimpleMatrix M, SimpleMatrix gradM, String label) {
@@ -146,8 +171,7 @@ public class WindowModel {
 			}
 		}
 		System.out.println("Finished checking matrix " + label + ".");
-		System.out.println("If you don't see any errors, that's a success!");
-		
+		System.out.println("If you don't see any errors, that's a success!");	
 	}
 	
 	
@@ -181,7 +205,8 @@ public class WindowModel {
 	 */
 	private SimpleMatrix gradientU(int pos, List<Datum> trainingData, SimpleMatrix p) {
 		// Return (p-y) * hT = 5xH 
-		return getTrueY(pos, trainingData).minus(p).mult(getMatrixA(pos, trainingData).transpose());
+		SimpleMatrix r = getTrueY(pos, trainingData).minus(p).mult(getMatrixA(pos, trainingData).transpose());
+		return r.scale(-1);
 	}
 	
 	//This seems to be doing what we want -John
@@ -204,7 +229,8 @@ public class WindowModel {
 	 */
 	private SimpleMatrix gradientB2(int pos, List<Datum> trainingData, SimpleMatrix p) {
 		// Return (y - p)
-		return getTrueY(pos, trainingData).minus(p);	
+		SimpleMatrix r = getTrueY(pos, trainingData).minus(p);	
+		return r.scale(-1);
 	}
 	
 	
@@ -236,17 +262,19 @@ public class WindowModel {
 		SimpleMatrix UT = U.transpose();
 		SimpleMatrix y = getTrueY(pos, trainingData);
 		SimpleMatrix x = UT.mult(y.minus(p));
-		return z.elementMult(x);
+		return (z.elementMult(x)).scale(-1);
 	}
 	
 	private SimpleMatrix gradientL(int pos, List<Datum> trainingData, boolean update, SimpleMatrix gradB1) {//SimpleMatrix p, SimpleMatrix z) {
 		int[] windows = getWindowNums(pos, trainingData);
 		SimpleMatrix gradL = null;
 		if(!update) {
+			modifiedColumns.clear();
 			gradL = new SimpleMatrix(lookupTable.numRows(), lookupTable.numCols());
 		}
 		
 		for(int i = 0; i < windows.length; i++) {
+			modifiedColumns.add(windows[i]);
 			modifyColumn(windows[i], i, gradL, pos, trainingData, gradB1, update);
 		}
 		
@@ -262,7 +290,7 @@ public class WindowModel {
 				gradL.set(row, col, gradL.get(row, col) - result.get(row, 0)); 
 			}
 			if(update) {
-				lookupTable.set(row, col, lookupTable.get(row, col) - (alpha * result.get(row, 0)));
+				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
 			}
 		}
 	}
@@ -316,10 +344,11 @@ public class WindowModel {
 				word = convertDigitsToDG(word);
 			
 			//Then we get the index of that word from wordToNum
-			if(wordToNum.containsKey(word))
+			if(wordToNum.containsKey(word)) {
 				windowNums[j-middleIndex+windowSize/2] = wordToNum.get(word);
-			else
+			} else {
 				windowNums[j-middleIndex+windowSize/2] = wordToNum.get("UUUNKKK");
+			}
 		}
 		return windowNums;
 	}
@@ -427,18 +456,15 @@ public class WindowModel {
 	// JUSTIN'S AWESOME STUFF ------------------------------------------------------------------------------------------
 	//This gets the cost for a specific position in our training data
 	private double costFunction(List<Datum> _trainingData, int pos) {
-		//double cost = 0;
 		int index = labelMap.get(_trainingData.get(pos).label);
 		SimpleMatrix pTheta =  softMax(getMatrixH(pos, _trainingData));	
 		// add Log
-		//cost += Math.log(pTheta.get(index));
-		//return cost;
-		return Math.log(pTheta.get(index));
+		return -1 * Math.log(pTheta.get(index));
 	}
 	
-	public void test(List<Datum> testData){
+	public void testBaseline(List<Datum> testData){
 		//Baseline function
-		/*try {
+		try {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(Datum datum : testData){
 				f0.write(datum.word + "\t" + datum.label + "\t");
@@ -453,8 +479,10 @@ public class WindowModel {
 			f0.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-		}*/
-		
+		}
+	}
+	
+	public void test(List<Datum> testData){		
 		try {
 			FileWriter f0 = new FileWriter(OUTPUT_FILENAME);
 			for(int i = 0; i < testData.size(); i++){
