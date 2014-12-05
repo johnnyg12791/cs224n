@@ -288,7 +288,7 @@ public class WindowModel {
 		SimpleMatrix result = w.mult(gradB1);
 		for(int row = 0; row < result.numRows(); row++) {
 			if(!update) {
-				gradL.set(row, col, gradL.get(row, col) - result.get(row, 0)); 
+				gradL.set(row, col, gradL.get(row, col) + result.get(row, 0)); 
 			}
 			if(update) {
 				lookupTable.set(row, col, lookupTable.get(row, col) - alpha * result.get(row, 0));
