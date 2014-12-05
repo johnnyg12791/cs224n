@@ -409,7 +409,7 @@ public class WindowModel {
 	private void runSGD(List<Datum> _trainingData) {
 		int m = _trainingData.size();
 		for (int i = 0; i < m; i++) {
-			if(i % 1000 == 0) {
+			if(i % 10000 == 0) {
 				System.out.println("training example " + i);
 			}
 			SimpleMatrix p = softMax(getMatrixH(i, _trainingData));	
