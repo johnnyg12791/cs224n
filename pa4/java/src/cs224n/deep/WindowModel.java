@@ -72,6 +72,9 @@ public class WindowModel {
 		//Init biases to 0
 		B1 = new SimpleMatrix(hiddenSize, 1); //H x 1	
 		B2 = new SimpleMatrix(K, 1); //K x 1 (or 1 x K?)
+		
+		// For comparing to random L:
+		//lookupTable = SimpleMatrix.random(lookupTable.numRows(), lookupTable.numCols(), -eInit, eInit, rand);
 	}
 
 	
@@ -80,8 +83,6 @@ public class WindowModel {
 	 * Simplest SGD training 
 	 */
 	public void train(List<Datum> _trainData ){
-		//System.out.println(U.toString());
-		//System.out.println(W.toString());
 		for(int i = 0; i < 5; i++) {
 			System.out.println("iteration: " + i);
 			runSGD(_trainData);

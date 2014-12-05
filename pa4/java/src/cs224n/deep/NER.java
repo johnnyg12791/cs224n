@@ -50,6 +50,7 @@ public class NER {
 			SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 		
 			// initialize model 
+			//WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0.0001);
 			WindowModel model = new WindowModel(5, 100, 0.001, allVecs, 0.0001);
 			model.initWeights();
 		
